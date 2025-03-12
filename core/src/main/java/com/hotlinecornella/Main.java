@@ -6,28 +6,70 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.Logger;
 
-/** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class Main extends ApplicationAdapter {
+    private static final Logger logger = new Logger(Main.class.getName(), Logger.DEBUG);
     private SpriteBatch batch;
-    private Texture image;
+    private Texture tileset;
+    private GameMap gameMap;
 
     @Override
     public void create() {
-        batch = new SpriteBatch();
-        image = new Texture("libgdx.png");
+        try {
+            batch = new SpriteBatch();
+            gameMap = MapLoader.loadMap("game_data.json");
+            if (gameMap == null) {
+                logger.error("Failed to load game map");
+                return;
+            }
+            tileset = new Texture(Gdx.files.internal(gameMap.levels.getFirst().layers.getFirst().tilesSheetFile));
+        } catch (Exception e) {
+            logger.error("Error during create", e);
+        }
     }
 
     @Override
     public void render() {
-        ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
-        batch.begin();
-        batch.draw(image, 140, 210);
-        batch.end();
+        try {
+            ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
+            batch.begin();
+            renderMap();
+            batch.end();
+        } catch (Exception e) {
+            logger.error("Error during render", e);
+        }
     }
+
+    private void renderMap() {
+        try {
+            GameMap.Level.Layer layer = gameMap.levels.get(0).layers.get(0);
+            int tileWidth = layer.tilesWidth;
+            int tileHeight = layer.tilesHeight;
+            int mapWidth = layer.tileMap[0].length * tileWidth;
+            int mapHeight = layer.tileMap.length * tileHeight;
+
+            float scaleX = (float) Gdx.graphics.getWidth() / mapWidth;
+            float scaleY = (float) Gdx.graphics.getHeight() / mapHeight;
+
+            for (int y = 0; y < layer.tileMap.length; y++) {
+                for (int x = 0; x < layer.tileMap[y].length; x++) {
+                    int tileId = layer.tileMap[y][x];
+                    if (tileId != 0) {
+                        int srcX = (tileId % (tileset.getWidth() / tileWidth)) * tileWidth;
+                        int srcY = (tileId / (tileset.getWidth() / tileWidth)) * tileHeight;
+                        batch.draw(tileset, x * tileWidth * scaleX, Gdx.graphics.getHeight() - (y + 1) * tileHeight * scaleY, tileWidth * scaleX, tileHeight * scaleY, srcX, srcY, tileWidth, tileHeight, false, false);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error during renderMap", e);
+        }
+    }
+
     @Override
     public void dispose() {
         batch.dispose();
-        image.dispose();
+        tileset.dispose();
     }
 }
