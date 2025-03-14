@@ -16,6 +16,7 @@ public class Player {
     private float stateTime;
     private float x, y;
     private boolean isRunning;
+    private boolean flipX;
 
     public Player(String idleTextureFilePath, String runTextureFilePath, float initialX, float initialY) {
         try {
@@ -30,6 +31,7 @@ public class Player {
 
             stateTime = 0f;
             isRunning = false;
+            flipX = false;
         } catch (Exception e) {
             logger.error("Error loading player textures", e);
         }
@@ -54,6 +56,11 @@ public class Player {
     public void render(SpriteBatch batch) {
         try {
             TextureRegion currentFrame = isRunning ? runAnimation.getKeyFrame(stateTime, true) : idleAnimation.getKeyFrame(stateTime, true);
+            if (flipX && !currentFrame.isFlipX()) {
+                currentFrame.flip(true, false);
+            } else if (!flipX && currentFrame.isFlipX()) {
+                currentFrame.flip(true, false);
+            }
             batch.draw(currentFrame, x, y);
         } catch (Exception e) {
             logger.error("Error rendering player", e);
@@ -64,6 +71,11 @@ public class Player {
         x += deltaX;
         y += deltaY;
         isRunning = deltaX != 0 || deltaY != 0;
+        if (deltaX < 0) {
+            flipX = true;
+        } else if (deltaX > 0) {
+            flipX = false;
+        }
     }
 
     public void setRunning(boolean running) {

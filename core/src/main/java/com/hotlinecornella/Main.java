@@ -50,14 +50,17 @@ public class Main extends ApplicationAdapter {
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
             player.move(-moveSpeed, 0);
         }
-        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+        else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
             player.move(moveSpeed, 0);
         }
-        if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+        else if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
             player.move(0, moveSpeed);
         }
-        if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+        else if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
             player.move(0, -moveSpeed);
+        }
+        else {
+            player.setRunning(false);
         }
     }
     private void renderMap() {
@@ -87,13 +90,7 @@ public class Main extends ApplicationAdapter {
     }
 
     private void checkCollisions() {
-        for (GameMap.Level.Zone zone : gameMap.levels.get(0).zones) {
-            Rectangle zoneRect = new Rectangle(zone.x, zone.y, zone.width, zone.height);
-            if (player.getBounds().overlaps(zoneRect)) {
-                // Handle collision (e.g., stop player movement, adjust position, etc.)
-                logger.debug("Collision detected with zone: " + zone.type);
-            }
-        }
+
     }
 
     @Override
