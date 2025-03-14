@@ -5,6 +5,8 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.Logger;
 
@@ -14,18 +16,20 @@ public class Main extends ApplicationAdapter {
     private Texture tileset;
     private GameMap gameMap;
     private Player player;
+    private ShapeRenderer shapeRenderer;
 
     @Override
     public void create() {
         try {
             batch = new SpriteBatch();
+            shapeRenderer = new ShapeRenderer();
             gameMap = MapLoader.loadMap("game_data.json");
             if (gameMap == null) {
                 logger.error("Failed to load game map");
                 return;
             }
             tileset = new Texture(Gdx.files.internal(gameMap.levels.getFirst().layers.getFirst().tilesSheetFile));
-            player = new Player("images/player1_idle.png", "images/player1_run.png", 50, 150); // Initialize player with texture and position
+            player = new Player("images/player1_idle.png", "images/player1_run.png", 50, 150, 1.5f); // Initialize player with texture and position
         } catch (Exception e) {
             logger.error("Error during create", e);
         }
@@ -35,34 +39,41 @@ public class Main extends ApplicationAdapter {
     public void render() {
         try {
             handleInput();
+            checkCollisions();
             ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
             batch.begin();
             renderMap();
             player.update(Gdx.graphics.getDeltaTime());
             player.render(batch); // Render the player
             batch.end();
+
+            // Render the zones
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+            shapeRenderer.setColor(1, 1, 1, 1); // White color
+            for (GameMap.Level.Zone zone : gameMap.levels.getFirst().zones) {
+                shapeRenderer.rect(zone.x, zone.y, zone.width, zone.height);
+            }
+            shapeRenderer.end();
         } catch (Exception e) {
             logger.error("Error during render", e);
         }
     }
+
     private void handleInput() {
         float moveSpeed = 100 * Gdx.graphics.getDeltaTime();
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
             player.move(-moveSpeed, 0);
-        }
-        else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+        } else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
             player.move(moveSpeed, 0);
-        }
-        else if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+        } else if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
             player.move(0, moveSpeed);
-        }
-        else if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+        } else if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
             player.move(0, -moveSpeed);
-        }
-        else {
+        } else {
             player.setRunning(false);
         }
     }
+
     private void renderMap() {
         try {
             GameMap.Level.Layer layer = gameMap.levels.getFirst().layers.getFirst();
@@ -90,7 +101,16 @@ public class Main extends ApplicationAdapter {
     }
 
     private void checkCollisions() {
-
+        for (GameMap.Level.Zone zone : gameMap.levels.getFirst().zones) {
+            Rectangle zoneRect = new Rectangle(zone.x, zone.y, zone.width, zone.height);
+            if (player.getBounds().overlaps(zoneRect)) {
+                // Handle collision (e.g., stop player movement, adjust position, etc.)
+                logger.debug("Collision detected with zone: " + zone.type);
+                if (!zone.type.equals("GameZone")) {
+                    System.out.println("Collision detected with zone: " + zone.type);
+                }
+            }
+        }
     }
 
     @Override
@@ -98,5 +118,6 @@ public class Main extends ApplicationAdapter {
         batch.dispose();
         tileset.dispose();
         player.dispose(); // Dispose of player resources
+        shapeRenderer.dispose();
     }
 }

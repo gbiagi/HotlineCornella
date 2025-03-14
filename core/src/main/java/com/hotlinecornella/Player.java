@@ -5,6 +5,8 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Logger;
 
 public class Player {
@@ -17,13 +19,17 @@ public class Player {
     private float x, y;
     private boolean isRunning;
     private boolean flipX;
+    private float scale;
+    private ShapeRenderer shapeRenderer;
 
-    public Player(String idleTextureFilePath, String runTextureFilePath, float initialX, float initialY) {
+    public Player(String idleTextureFilePath, String runTextureFilePath, float initialX, float initialY, float scale) {
         try {
             idleTexture = new Texture(Gdx.files.internal(idleTextureFilePath));
             runTexture = new Texture(Gdx.files.internal(runTextureFilePath));
             this.x = initialX;
             this.y = initialY;
+            this.scale = scale;
+            this.shapeRenderer = new ShapeRenderer();
 
             // Assuming each frame is 120x44 pixels
             idleAnimation = createAnimation(idleTexture);
@@ -61,7 +67,14 @@ public class Player {
             } else if (!flipX && currentFrame.isFlipX()) {
                 currentFrame.flip(true, false);
             }
-            batch.draw(currentFrame, x, y);
+            batch.draw(currentFrame, x, y, currentFrame.getRegionWidth() * scale, currentFrame.getRegionHeight() * scale);
+
+            // Render the bounds
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+            shapeRenderer.setColor(1, 0, 0, 1); // Red color
+            Rectangle bounds = getBounds();
+            shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
+            shapeRenderer.end();
         } catch (Exception e) {
             logger.error("Error rendering player", e);
         }
@@ -85,5 +98,9 @@ public class Player {
     public void dispose() {
         idleTexture.dispose();
         runTexture.dispose();
+    }
+
+    public Rectangle getBounds() {
+        return new Rectangle(x, y, idleAnimation.getKeyFrame(0).getRegionWidth() * scale, idleAnimation.getKeyFrame(0).getRegionHeight() * scale);
     }
 }
