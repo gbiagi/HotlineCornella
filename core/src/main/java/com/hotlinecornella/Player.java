@@ -2,45 +2,76 @@ package com.hotlinecornella;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.utils.Logger;
 
 public class Player {
-    private Texture texture;
-    private Vector2 position;
-    private float speed;
-    private Rectangle bounds;
+    private static final Logger logger = new Logger(Player.class.getName(), Logger.DEBUG);
+    private Texture idleTexture;
+    private Texture runTexture;
+    private Animation<TextureRegion> idleAnimation;
+    private Animation<TextureRegion> runAnimation;
+    private float stateTime;
+    private float x, y;
+    private boolean isRunning;
 
-    public Player(String textureFile, float x, float y, float speed) {
-        this.texture = new Texture(Gdx.files.internal(textureFile));
-        this.position = new Vector2(x, y);
-        this.speed = speed;
-        this.bounds = new Rectangle(x, y, texture.getWidth(), texture.getHeight());
+    public Player(String idleTextureFilePath, String runTextureFilePath, float initialX, float initialY) {
+        try {
+            idleTexture = new Texture(Gdx.files.internal(idleTextureFilePath));
+            runTexture = new Texture(Gdx.files.internal(runTextureFilePath));
+            this.x = initialX;
+            this.y = initialY;
+
+            // Assuming each frame is 120x44 pixels
+            idleAnimation = createAnimation(idleTexture);
+            runAnimation = createAnimation(runTexture);
+
+            stateTime = 0f;
+            isRunning = false;
+        } catch (Exception e) {
+            logger.error("Error loading player textures", e);
+        }
+    }
+
+    private Animation<TextureRegion> createAnimation(Texture texture) {
+        TextureRegion[][] tmp = TextureRegion.split(texture, 120, 44);
+        TextureRegion[] frames = new TextureRegion[tmp.length * tmp[0].length];
+        int index = 0;
+        for (TextureRegion[] textureRegions : tmp) {
+            for (TextureRegion textureRegion : textureRegions) {
+                frames[index++] = textureRegion;
+            }
+        }
+        return new Animation<>((float) 0.1, frames);
     }
 
     public void update(float deltaTime) {
-        float moveX = 0;
-        float moveY = 0;
-
-        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.W)) moveY += speed * deltaTime;
-        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.S)) moveY -= speed * deltaTime;
-        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.A)) moveX -= speed * deltaTime;
-        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.D)) moveX += speed * deltaTime;
-
-        position.add(moveX, moveY);
-        bounds.setPosition(position.x, position.y);
+        stateTime += deltaTime;
     }
 
     public void render(SpriteBatch batch) {
-        batch.draw(texture, position.x, position.y);
+        try {
+            TextureRegion currentFrame = isRunning ? runAnimation.getKeyFrame(stateTime, true) : idleAnimation.getKeyFrame(stateTime, true);
+            batch.draw(currentFrame, x, y);
+        } catch (Exception e) {
+            logger.error("Error rendering player", e);
+        }
     }
 
-    public Rectangle getBounds() {
-        return bounds;
+    public void move(float deltaX, float deltaY) {
+        x += deltaX;
+        y += deltaY;
+        isRunning = deltaX != 0 || deltaY != 0;
+    }
+
+    public void setRunning(boolean running) {
+        isRunning = running;
     }
 
     public void dispose() {
-        texture.dispose();
+        idleTexture.dispose();
+        runTexture.dispose();
     }
 }

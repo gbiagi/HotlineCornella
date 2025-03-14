@@ -2,12 +2,11 @@ package com.hotlinecornella;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.Logger;
-import com.badlogic.gdx.math.Rectangle;
 
 public class Main extends ApplicationAdapter {
     private static final Logger logger = new Logger(Main.class.getName(), Logger.DEBUG);
@@ -25,8 +24,8 @@ public class Main extends ApplicationAdapter {
                 logger.error("Failed to load game map");
                 return;
             }
-            tileset = new Texture(Gdx.files.internal(gameMap.levels.get(0).layers.get(0).tilesSheetFile));
-            player = new Player("player_texture.png", 50, 50, 200); // Adjust the initial position and speed as needed
+            tileset = new Texture(Gdx.files.internal(gameMap.levels.getFirst().layers.getFirst().tilesSheetFile));
+            player = new Player("images/player1_idle.png", "images/player1_run.png", 50, 150); // Initialize player with texture and position
         } catch (Exception e) {
             logger.error("Error during create", e);
         }
@@ -35,21 +34,35 @@ public class Main extends ApplicationAdapter {
     @Override
     public void render() {
         try {
+            handleInput();
             ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
             batch.begin();
             renderMap();
             player.update(Gdx.graphics.getDeltaTime());
-            checkCollisions();
-            player.render(batch);
+            player.render(batch); // Render the player
             batch.end();
         } catch (Exception e) {
             logger.error("Error during render", e);
         }
     }
-
+    private void handleInput() {
+        float moveSpeed = 100 * Gdx.graphics.getDeltaTime();
+        if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+            player.move(-moveSpeed, 0);
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+            player.move(moveSpeed, 0);
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+            player.move(0, moveSpeed);
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+            player.move(0, -moveSpeed);
+        }
+    }
     private void renderMap() {
         try {
-            GameMap.Level.Layer layer = gameMap.levels.get(0).layers.get(0);
+            GameMap.Level.Layer layer = gameMap.levels.getFirst().layers.getFirst();
             int tileWidth = layer.tilesWidth;
             int tileHeight = layer.tilesHeight;
             int mapWidth = layer.tileMap[0].length * tileWidth;
@@ -87,6 +100,6 @@ public class Main extends ApplicationAdapter {
     public void dispose() {
         batch.dispose();
         tileset.dispose();
-        player.dispose();
+        player.dispose(); // Dispose of player resources
     }
 }
