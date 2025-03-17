@@ -23,7 +23,7 @@ public class Main extends ApplicationAdapter {
         try {
             batch = new SpriteBatch();
             shapeRenderer = new ShapeRenderer();
-            gameMap = MapLoader.loadMap("game_data.json");
+            gameMap = MapParser.loadMap("game_data.json");
             if (gameMap == null) {
                 logger.error("Failed to load game map");
                 return;
@@ -47,11 +47,13 @@ public class Main extends ApplicationAdapter {
             player.render(batch); // Render the player
             batch.end();
 
-            // Render the zones
+            // Render the zones hitbox -------------------------------------
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
             shapeRenderer.setColor(1, 1, 1, 1); // White color
+            float scaleX = (float) Gdx.graphics.getWidth() / (gameMap.levels.getFirst().layers.getFirst().tileMap[0].length * gameMap.levels.getFirst().layers.getFirst().tilesWidth);
+            float scaleY = (float) Gdx.graphics.getHeight() / (gameMap.levels.getFirst().layers.getFirst().tileMap.length * gameMap.levels.getFirst().layers.getFirst().tilesHeight);
             for (GameMap.Level.Zone zone : gameMap.levels.getFirst().zones) {
-                shapeRenderer.rect(zone.x, zone.y, zone.width, zone.height);
+                shapeRenderer.rect(zone.x * scaleX, (Gdx.graphics.getHeight() - (zone.y + zone.height) * scaleY), zone.width * scaleX, zone.height * scaleY);
             }
             shapeRenderer.end();
         } catch (Exception e) {
@@ -101,8 +103,11 @@ public class Main extends ApplicationAdapter {
     }
 
     private void checkCollisions() {
+        float scaleX = (float) Gdx.graphics.getWidth() / (gameMap.levels.getFirst().layers.getFirst().tileMap[0].length * gameMap.levels.getFirst().layers.getFirst().tilesWidth);
+        float scaleY = (float) Gdx.graphics.getHeight() / (gameMap.levels.getFirst().layers.getFirst().tileMap.length * gameMap.levels.getFirst().layers.getFirst().tilesHeight);
+
         for (GameMap.Level.Zone zone : gameMap.levels.getFirst().zones) {
-            Rectangle zoneRect = new Rectangle(zone.x, zone.y, zone.width, zone.height);
+            Rectangle zoneRect = new Rectangle(zone.x * scaleX, (Gdx.graphics.getHeight() - (zone.y + zone.height) * scaleY), zone.width * scaleX, zone.height * scaleY);
             if (player.getBounds().overlaps(zoneRect)) {
                 // Handle collision (e.g., stop player movement, adjust position, etc.)
                 logger.debug("Collision detected with zone: " + zone.type);

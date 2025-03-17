@@ -69,12 +69,13 @@ public class Player {
             }
             batch.draw(currentFrame, x, y, currentFrame.getRegionWidth() * scale, currentFrame.getRegionHeight() * scale);
 
-            // Render the bounds
+            // Render the player hitbox --------------------------
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
             shapeRenderer.setColor(1, 0, 0, 1); // Red color
             Rectangle bounds = getBounds();
             shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
             shapeRenderer.end();
+
         } catch (Exception e) {
             logger.error("Error rendering player", e);
         }
