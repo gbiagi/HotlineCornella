@@ -44,7 +44,7 @@ public class Player {
     }
 
     private Animation<TextureRegion> createAnimation(Texture texture) {
-        TextureRegion[][] tmp = TextureRegion.split(texture, 120, 44);
+        TextureRegion[][] tmp = TextureRegion.split(texture, 29, 39);
         TextureRegion[] frames = new TextureRegion[tmp.length * tmp[0].length];
         int index = 0;
         for (TextureRegion[] textureRegions : tmp) {
