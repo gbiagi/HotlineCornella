@@ -29,7 +29,7 @@ public class Main extends ApplicationAdapter {
                 return;
             }
             tileset = new Texture(Gdx.files.internal(gameMap.levels.getFirst().layers.getFirst().tilesSheetFile));
-            player = new Player("images/player1_idle.png", "images/player1_run.png", 50, 150, 1.5f); // Initialize player with texture and position
+            player = new Player("images/player1_idle.png", "images/player1_run.png", 50, 150, 1.5f);
         } catch (Exception e) {
             logger.error("Error during create", e);
         }
@@ -39,17 +39,15 @@ public class Main extends ApplicationAdapter {
     public void render() {
         try {
             handleInput();
-            checkCollisions();
             ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
             batch.begin();
             renderMap();
             player.update(Gdx.graphics.getDeltaTime());
-            player.render(batch); // Render the player
+            player.render(batch);
             batch.end();
 
-            // Render the zones hitbox -------------------------------------
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-            shapeRenderer.setColor(1, 1, 1, 1); // White color
+            shapeRenderer.setColor(1, 1, 1, 1);
             float scaleX = (float) Gdx.graphics.getWidth() / (gameMap.levels.getFirst().layers.getFirst().tileMap[0].length * gameMap.levels.getFirst().layers.getFirst().tilesWidth);
             float scaleY = (float) Gdx.graphics.getHeight() / (gameMap.levels.getFirst().layers.getFirst().tileMap.length * gameMap.levels.getFirst().layers.getFirst().tilesHeight);
             for (GameMap.Level.Zone zone : gameMap.levels.getFirst().zones) {
@@ -63,17 +61,59 @@ public class Main extends ApplicationAdapter {
 
     private void handleInput() {
         float moveSpeed = 100 * Gdx.graphics.getDeltaTime();
+        float nextX = player.getX();
+        float nextY = player.getY();
+
+        Direction currentDirection = null;
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-            player.move(-moveSpeed, 0);
-        } else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-            player.move(moveSpeed, 0);
-        } else if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
-            player.move(0, moveSpeed);
-        } else if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
-            player.move(0, -moveSpeed);
-        } else {
+            nextX -= moveSpeed;
+            if (willCollide(nextX, nextY)) {
+                player.move(-moveSpeed, 0);
+                currentDirection = Direction.LEFT;
+            }
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+            nextX += moveSpeed;
+            if (willCollide(nextX, nextY)) {
+                player.move(moveSpeed, 0);
+                currentDirection = Direction.RIGHT;
+            }
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+            nextY += moveSpeed;
+            if (willCollide(nextX, nextY)) {
+                player.move(0, moveSpeed);
+                currentDirection = Direction.UP;
+            }
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+            nextY -= moveSpeed;
+            if (willCollide(nextX, nextY)) {
+                player.move(0, -moveSpeed);
+                currentDirection = Direction.DOWN;
+            }
+        }
+
+        if (!(Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.RIGHT) ||
+            Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.DOWN))) {
             player.setRunning(false);
         }
+    }
+    private boolean willCollide(float nextX, float nextY) {
+        float scaleX = (float) Gdx.graphics.getWidth() / (gameMap.levels.getFirst().layers.getFirst().tileMap[0].length * gameMap.levels.getFirst().layers.getFirst().tilesWidth);
+        float scaleY = (float) Gdx.graphics.getHeight() / (gameMap.levels.getFirst().layers.getFirst().tileMap.length * gameMap.levels.getFirst().layers.getFirst().tilesHeight);
+
+        Rectangle nextBounds = new Rectangle(nextX, nextY, player.getBounds().width, player.getBounds().height);
+
+        for (GameMap.Level.Zone zone : gameMap.levels.getFirst().zones) {
+            Rectangle zoneRect = new Rectangle(zone.x * scaleX, (Gdx.graphics.getHeight() - (zone.y + zone.height) * scaleY), zone.width * scaleX, zone.height * scaleY);
+
+            if (nextBounds.overlaps(zoneRect) && !zone.type.equals("GameZone")) {
+                logger.debug("Collision detected at (" + nextX + "," + nextY + ") with " + zone.type);
+                return false;
+            }
+        }
+        return true;
     }
 
     private void renderMap() {
@@ -102,27 +142,11 @@ public class Main extends ApplicationAdapter {
         }
     }
 
-    private void checkCollisions() {
-        float scaleX = (float) Gdx.graphics.getWidth() / (gameMap.levels.getFirst().layers.getFirst().tileMap[0].length * gameMap.levels.getFirst().layers.getFirst().tilesWidth);
-        float scaleY = (float) Gdx.graphics.getHeight() / (gameMap.levels.getFirst().layers.getFirst().tileMap.length * gameMap.levels.getFirst().layers.getFirst().tilesHeight);
-
-        for (GameMap.Level.Zone zone : gameMap.levels.getFirst().zones) {
-            Rectangle zoneRect = new Rectangle(zone.x * scaleX, (Gdx.graphics.getHeight() - (zone.y + zone.height) * scaleY), zone.width * scaleX, zone.height * scaleY);
-            if (player.getBounds().overlaps(zoneRect)) {
-                // Handle collision (e.g., stop player movement, adjust position, etc.)
-                logger.debug("Collision detected with zone: " + zone.type);
-                if (!zone.type.equals("GameZone")) {
-                    System.out.println("Collision detected with zone: " + zone.type);
-                }
-            }
-        }
-    }
-
     @Override
     public void dispose() {
         batch.dispose();
         tileset.dispose();
-        player.dispose(); // Dispose of player resources
+        player.dispose();
         shapeRenderer.dispose();
     }
 }
