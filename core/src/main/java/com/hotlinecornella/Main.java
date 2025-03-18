@@ -5,8 +5,12 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.Logger;
+
+import java.util.Iterator;
 
 public class Main extends ApplicationAdapter {
     private static final Logger logger = new Logger(Main.class.getName(), Logger.DEBUG);
@@ -14,18 +18,21 @@ public class Main extends ApplicationAdapter {
     private Texture tileset;
     private GameMap gameMap;
     private Player player;
+    private ShapeRenderer shapeRenderer;
+    private boolean isShooting = false;
 
     @Override
     public void create() {
         try {
             batch = new SpriteBatch();
-            gameMap = MapLoader.loadMap("game_data.json");
+            shapeRenderer = new ShapeRenderer();
+            gameMap = MapParser.loadMap("game_data.json");
             if (gameMap == null) {
                 logger.error("Failed to load game map");
                 return;
             }
             tileset = new Texture(Gdx.files.internal(gameMap.levels.getFirst().layers.getFirst().tilesSheetFile));
-            player = new Player("images/player1_idle.png", "images/player1_run.png", 50, 150); // Initialize player with texture and position
+            player = new Player("images/player1_idle.png", "images/player1_run.png", 50, 150, 1.5f);
         } catch (Exception e) {
             logger.error("Error during create", e);
         }
@@ -39,30 +46,114 @@ public class Main extends ApplicationAdapter {
             batch.begin();
             renderMap();
             player.update(Gdx.graphics.getDeltaTime());
-            player.render(batch); // Render the player
+            player.render(batch);
             batch.end();
+
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+            shapeRenderer.setColor(1, 1, 1, 1);
+            float scaleX = (float) Gdx.graphics.getWidth() / (gameMap.levels.getFirst().layers.getFirst().tileMap[0].length * gameMap.levels.getFirst().layers.getFirst().tilesWidth);
+            float scaleY = (float) Gdx.graphics.getHeight() / (gameMap.levels.getFirst().layers.getFirst().tileMap.length * gameMap.levels.getFirst().layers.getFirst().tilesHeight);
+            for (GameMap.Level.Zone zone : gameMap.levels.getFirst().zones) {
+                shapeRenderer.rect(zone.x * scaleX, (Gdx.graphics.getHeight() - (zone.y + zone.height) * scaleY), zone.width * scaleX, zone.height * scaleY);
+            }
+            shapeRenderer.end();
+
+            checkBulletCollisions();
         } catch (Exception e) {
             logger.error("Error during render", e);
         }
     }
+
     private void handleInput() {
         float moveSpeed = 100 * Gdx.graphics.getDeltaTime();
+        float nextX = player.getX();
+        float nextY = player.getY();
+
+        Direction currentDirection = null;
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-            player.move(-moveSpeed, 0);
+            nextX -= moveSpeed;
+            if (willCollide(nextX, nextY)) {
+                player.move(-moveSpeed, 0);
+                currentDirection = Direction.LEFT;
+            }
         }
-        else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-            player.move(moveSpeed, 0);
+        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+            nextX += moveSpeed;
+            if (willCollide(nextX, nextY)) {
+                player.move(moveSpeed, 0);
+                currentDirection = Direction.RIGHT;
+            }
         }
-        else if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
-            player.move(0, moveSpeed);
+        if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+            nextY += moveSpeed;
+            if (willCollide(nextX, nextY)) {
+                player.move(0, moveSpeed);
+                currentDirection = Direction.UP;
+            }
         }
-        else if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
-            player.move(0, -moveSpeed);
+        if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+            nextY -= moveSpeed;
+            if (willCollide(nextX, nextY)) {
+                player.move(0, -moveSpeed);
+                currentDirection = Direction.DOWN;
+            }
         }
-        else {
+
+        if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
+            if (!isShooting && currentDirection != null) {
+                player.shoot(currentDirection);
+                isShooting = true;
+            }
+        } else {
+            isShooting = false;
+        }
+
+        if (!(Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.RIGHT) ||
+            Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.DOWN))) {
             player.setRunning(false);
         }
     }
+
+    private boolean willCollide(float nextX, float nextY) {
+        float scaleX = (float) Gdx.graphics.getWidth() / (gameMap.levels.getFirst().layers.getFirst().tileMap[0].length * gameMap.levels.getFirst().layers.getFirst().tilesWidth);
+        float scaleY = (float) Gdx.graphics.getHeight() / (gameMap.levels.getFirst().layers.getFirst().tileMap.length * gameMap.levels.getFirst().layers.getFirst().tilesHeight);
+
+        Rectangle nextBounds = new Rectangle(nextX, nextY, player.getBounds().width, player.getBounds().height);
+
+        for (GameMap.Level.Zone zone : gameMap.levels.getFirst().zones) {
+            Rectangle zoneRect = new Rectangle(zone.x * scaleX, (Gdx.graphics.getHeight() - (zone.y + zone.height) * scaleY), zone.width * scaleX, zone.height * scaleY);
+
+            if (nextBounds.overlaps(zoneRect) && !zone.type.equals("GameZone")) {
+                logger.debug("Collision detected at (" + nextX + "," + nextY + ") with " + zone.type);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void checkBulletCollisions() {
+        float scaleX = (float) Gdx.graphics.getWidth() / (gameMap.levels.getFirst().layers.getFirst().tileMap[0].length * gameMap.levels.getFirst().layers.getFirst().tilesWidth);
+        float scaleY = (float) Gdx.graphics.getHeight() / (gameMap.levels.getFirst().layers.getFirst().tileMap.length * gameMap.levels.getFirst().layers.getFirst().tilesHeight);
+
+        Iterator<Bullet> bulletIterator = player.getBullets().iterator();
+        while (bulletIterator.hasNext()) {
+            Bullet bullet = bulletIterator.next();
+            Rectangle bulletBounds = bullet.getBounds();
+
+            for (GameMap.Level.Zone zone : gameMap.levels.getFirst().zones) {
+                Rectangle zoneRect = new Rectangle(zone.x * scaleX, (Gdx.graphics.getHeight() - (zone.y + zone.height) * scaleY), zone.width * scaleX, zone.height * scaleY);
+                if (bulletBounds.overlaps(zoneRect) && !zone.type.equals("GameZone")) {
+                    logger.debug("Bullet collision detected with " + zone.type);
+                    bulletIterator.remove();
+                    break;
+                } else if (!bulletBounds.overlaps(zoneRect) && zone.type.equals("GameZone")) {
+                    bulletIterator.remove();
+                    break;
+                }
+            }
+        }
+    }
+
     private void renderMap() {
         try {
             GameMap.Level.Layer layer = gameMap.levels.getFirst().layers.getFirst();
@@ -89,14 +180,11 @@ public class Main extends ApplicationAdapter {
         }
     }
 
-    private void checkCollisions() {
-
-    }
-
     @Override
     public void dispose() {
         batch.dispose();
         tileset.dispose();
-        player.dispose(); // Dispose of player resources
+        player.dispose();
+        shapeRenderer.dispose();
     }
 }
