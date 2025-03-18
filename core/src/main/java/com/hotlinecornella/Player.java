@@ -9,6 +9,9 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Logger;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Player {
     private static final Logger logger = new Logger(Player.class.getName(), Logger.DEBUG);
     private Texture idleTexture;
@@ -21,6 +24,9 @@ public class Player {
     private boolean flipX;
     private float scale;
     private ShapeRenderer shapeRenderer;
+    private Texture bulletTexture;
+    private List<Bullet> bullets;
+
 
     public Player(String idleTextureFilePath, String runTextureFilePath, float initialX, float initialY, float scale) {
         try {
@@ -38,6 +44,9 @@ public class Player {
             stateTime = 0f;
             isRunning = false;
             flipX = false;
+            bulletTexture = new Texture("images/bullet.png");
+            bullets = new ArrayList<>();
+
         } catch (Exception e) {
             logger.error("Error loading player textures", e);
         }
@@ -57,6 +66,9 @@ public class Player {
 
     public void update(float deltaTime) {
         stateTime += deltaTime;
+        for (Bullet bullet : bullets) {
+            bullet.update(deltaTime);
+        }
     }
 
     public void render(SpriteBatch batch) {
@@ -69,12 +81,16 @@ public class Player {
             }
             batch.draw(currentFrame, x, y, currentFrame.getRegionWidth() * scale, currentFrame.getRegionHeight() * scale);
 
+            for (Bullet bullet : bullets) {
+                bullet.render(batch);
+            }
+
             // Render the player hitbox --------------------------
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-            shapeRenderer.setColor(1, 0, 0, 1); // Red color
-            Rectangle bounds = getBounds();
-            shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
-            shapeRenderer.end();
+//            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+//            shapeRenderer.setColor(1, 0, 0, 1); // Red color
+//            Rectangle bounds = getBounds();
+//            shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
+//            shapeRenderer.end();
 
         } catch (Exception e) {
             logger.error("Error rendering player", e);
@@ -90,6 +106,11 @@ public class Player {
         } else if (deltaX > 0) {
             flipX = false;
         }
+    }
+
+    public void shoot(Direction direction) {
+        Bullet bullet = new Bullet(bulletTexture, getX(), getY(), 300, direction);
+        bullets.add(bullet);
     }
 
     public void setRunning(boolean running) {
@@ -111,5 +132,8 @@ public class Player {
 
     public float getY() {
         return y;
+    }
+    public List<Bullet> getBullets() {
+        return bullets;
     }
 }

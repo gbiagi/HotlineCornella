@@ -10,6 +10,8 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.Logger;
 
+import java.util.Iterator;
+
 public class Main extends ApplicationAdapter {
     private static final Logger logger = new Logger(Main.class.getName(), Logger.DEBUG);
     private SpriteBatch batch;
@@ -17,6 +19,7 @@ public class Main extends ApplicationAdapter {
     private GameMap gameMap;
     private Player player;
     private ShapeRenderer shapeRenderer;
+    private boolean isShooting = false;
 
     @Override
     public void create() {
@@ -54,6 +57,8 @@ public class Main extends ApplicationAdapter {
                 shapeRenderer.rect(zone.x * scaleX, (Gdx.graphics.getHeight() - (zone.y + zone.height) * scaleY), zone.width * scaleX, zone.height * scaleY);
             }
             shapeRenderer.end();
+
+            checkBulletCollisions();
         } catch (Exception e) {
             logger.error("Error during render", e);
         }
@@ -94,11 +99,21 @@ public class Main extends ApplicationAdapter {
             }
         }
 
+        if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
+            if (!isShooting && currentDirection != null) {
+                player.shoot(currentDirection);
+                isShooting = true;
+            }
+        } else {
+            isShooting = false;
+        }
+
         if (!(Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.RIGHT) ||
             Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.DOWN))) {
             player.setRunning(false);
         }
     }
+
     private boolean willCollide(float nextX, float nextY) {
         float scaleX = (float) Gdx.graphics.getWidth() / (gameMap.levels.getFirst().layers.getFirst().tileMap[0].length * gameMap.levels.getFirst().layers.getFirst().tilesWidth);
         float scaleY = (float) Gdx.graphics.getHeight() / (gameMap.levels.getFirst().layers.getFirst().tileMap.length * gameMap.levels.getFirst().layers.getFirst().tilesHeight);
@@ -114,6 +129,29 @@ public class Main extends ApplicationAdapter {
             }
         }
         return true;
+    }
+
+    private void checkBulletCollisions() {
+        float scaleX = (float) Gdx.graphics.getWidth() / (gameMap.levels.getFirst().layers.getFirst().tileMap[0].length * gameMap.levels.getFirst().layers.getFirst().tilesWidth);
+        float scaleY = (float) Gdx.graphics.getHeight() / (gameMap.levels.getFirst().layers.getFirst().tileMap.length * gameMap.levels.getFirst().layers.getFirst().tilesHeight);
+
+        Iterator<Bullet> bulletIterator = player.getBullets().iterator();
+        while (bulletIterator.hasNext()) {
+            Bullet bullet = bulletIterator.next();
+            Rectangle bulletBounds = bullet.getBounds();
+
+            for (GameMap.Level.Zone zone : gameMap.levels.getFirst().zones) {
+                Rectangle zoneRect = new Rectangle(zone.x * scaleX, (Gdx.graphics.getHeight() - (zone.y + zone.height) * scaleY), zone.width * scaleX, zone.height * scaleY);
+                if (bulletBounds.overlaps(zoneRect) && !zone.type.equals("GameZone")) {
+                    logger.debug("Bullet collision detected with " + zone.type);
+                    bulletIterator.remove();
+                    break;
+                } else if (!bulletBounds.overlaps(zoneRect) && zone.type.equals("GameZone")) {
+                    bulletIterator.remove();
+                    break;
+                }
+            }
+        }
     }
 
     private void renderMap() {
