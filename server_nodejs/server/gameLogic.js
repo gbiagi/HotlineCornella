@@ -19,9 +19,10 @@ const DIRECTIONS = {
 };
 
 class GameLogic {
-    constructor() {
-        this.objects = [];
-        this.players = new Map();
+    constructor(ws) {
+        this.players = new Map(); // Initialize the players map
+        this.objects = []; // Initialize other game objects if needed
+        this.ws = ws; // Store the WebSocket object
 
         // Rectangles que mou el servidor
         for (let i = 0; i < 10; i++) {
@@ -38,20 +39,20 @@ class GameLogic {
 
     // Es connecta un client/jugador
     addClient(id) {
-        let pos = this.getValidPosition();
-        let color = this.getAvailableColor();
+        const pos = this.getValidPosition();
+        const color = this.getAvailableColor();
 
         this.players.set(id, {
             id,
             x: pos.x,
             y: pos.y,
-            speed: SPEED,
+            speed: 0.2,
             direction: "none",
             color,
-            radius: INITIAL_RADIUS
+            radius: 0.05
         });
 
-        return this.players.get(id);
+        console.log(`Player ${id} added at position: x=${pos.x}, y=${pos.y}`);
     }
 
     // Es desconnecta un client/jugador
@@ -74,6 +75,36 @@ class GameLogic {
               break;
           }
         } catch (error) {}
+    }
+
+    handleMessage(clientId, message) {
+        if (message.type === "playerMove") {
+            const { x, y } = message;
+
+            console.log(`Updating position for client ${clientId}: x=${x}, y=${y}`);
+            this.updatePlayerPosition(clientId, x, y);
+
+            // Send the game state excluding the sender's position to the sender
+            const senderGameState = this.getGameState(clientId);
+            this.ws.broadcast(JSON.stringify({ type: "update", gameState: senderGameState }), clientId);
+
+            // Send the full game state to all other clients
+            const fullGameState = this.getGameState();
+            this.ws.broadcastToOthers(clientId, JSON.stringify({ type: "update", gameState: fullGameState }));
+        }
+    }
+
+    updatePlayerPosition(clientId, x, y) {
+        if (this.players.has(clientId)) {
+            const player = this.players.get(clientId);
+            player.x = x;
+            player.y = y;
+
+            // Debug log to confirm the player's position is updated
+            console.log(`Player ${clientId} position updated to: x=${x}, y=${y}`);
+        } else {
+            console.error(`Player ${clientId} not found. Cannot update position.`);
+        }
     }
 
     // Blucle de joc (funció que s'executa contínuament)
@@ -156,10 +187,10 @@ class GameLogic {
     }
 
     // Retorna l'estat del joc (per enviar-lo als clients/jugadors)
-    getGameState() {
+    getGameState(excludeClientId = null) {
         return {
             objects: this.objects,
-            players: Array.from(this.players.values())
+            players: Array.from(this.players.values()).filter(player => player.id !== excludeClientId)
         };
     }
 }

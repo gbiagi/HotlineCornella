@@ -8,7 +8,7 @@ const port = process.env.PORT || 8888;
 
 // Inicialitzar WebSockets i la lògica del joc
 const ws = new webSockets();
-const game = new GameLogic();
+const game = new GameLogic(ws); // Pass the WebSocket object
 let gameLoop = new GameLoop();
 
 // Inicialitzar servidor Express
@@ -29,9 +29,38 @@ ws.onConnection = (socket, id) => {
     game.addClient(id);
 };
 
+// Helper function to validate and parse JSON safely
+function parseMessage(msg) {
+    try {
+        const parsed = JSON.parse(msg);
+        if (typeof parsed.type === "string" && typeof parsed.id === "string") {
+            return parsed;
+        }
+        throw new Error("Invalid message structure");
+    } catch (error) {
+        console.error("Failed to parse message:", error.message);
+        return null;
+    }
+}
+
 ws.onMessage = (socket, id, msg) => {
-    if (debug) console.log(`New message from ${id}: ${msg.substring(0, 32)}...`);
-    game.handleMessage(id, msg);
+    try {
+        if (typeof msg !== "string") {
+            console.error(`Unexpected message type from ${id}:`, typeof msg);
+            return;
+        }
+
+        const parsedMsg = JSON.parse(msg);
+
+        if (parsedMsg.type === "playerMove") {
+            console.log(`Processing movement message for client ${id}:`, parsedMsg);
+            game.handleMessage(id, parsedMsg);
+        } else {
+            console.error(`Unknown message type from ${id}:`, parsedMsg.type);
+        }
+    } catch (error) {
+        console.error(`Error processing message from ${id}:`, error);
+    }
 };
 
 ws.onClose = (socket, id) => {

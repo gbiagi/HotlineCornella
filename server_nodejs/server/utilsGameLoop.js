@@ -48,4 +48,14 @@ class GameLoop {
     }
 }
 
+const gameLoop = new GameLoop();
+
+gameLoop.run = (fps) => {
+    game.updateGame(fps);
+
+    // Broadcast the updated game state to all clients
+    const gameState = game.getGameState();
+    ws.broadcast(JSON.stringify({ type: "update", gameState }));
+};
+
 module.exports = GameLoop;

@@ -3,6 +3,31 @@
 const WebSocket = require('ws')
 const { v4: uuidv4 } = require('uuid')
 
+class WebSocketManager {
+    constructor() {
+        this.clients = new Map(); // Store connected clients
+    }
+
+    // Send a message to a specific client
+    sendToClient(clientId, message) {
+        const client = this.clients.get(clientId);
+        if (client && client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    }
+
+    // Broadcast a message to all clients except the sender
+    broadcastToOthers(excludeClientId, message) {
+        this.clients.forEach((client, clientId) => {
+            if (clientId !== excludeClientId && client.readyState === WebSocket.OPEN) {
+                client.send(message);
+            }
+        });
+    }
+
+    // Add other WebSocket methods...
+}
+
 class Obj {
 
     init(httpServer, port) {
@@ -70,19 +95,20 @@ class Obj {
 
 
     // Send a message to all websocket clients
-    broadcast(msg) {
+    broadcast(message, excludeClientId = null) {
         this.ws.clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(msg)
+            const metadata = this.socketsClients.get(client);
+            if (client.readyState === WebSocket.OPEN && (!excludeClientId || metadata.id !== excludeClientId)) {
+                client.send(message);
             }
-        })
+        });
     }
 
     // A message is received from a websocket client
     newMessage(ws, id, bufferedMessage) {
-        var messageAsString = bufferedMessage.toString()
+        const messageAsString = bufferedMessage.toString('utf8'); // Convert the message to a UTF-8 string
         if (this.onMessage && typeof this.onMessage === "function") {
-            this.onMessage(ws, id, messageAsString)
+            this.onMessage(ws, id, messageAsString);
         }
     }
 
