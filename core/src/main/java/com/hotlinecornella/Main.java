@@ -9,7 +9,15 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.Logger;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ServerHandshake;
+import com.badlogic.gdx.utils.Json;
+import com.badlogic.gdx.utils.JsonValue;
+import com.badlogic.gdx.utils.JsonReader;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.Iterator;
 
 public class Main extends ApplicationAdapter {
@@ -20,6 +28,8 @@ public class Main extends ApplicationAdapter {
     private Player player;
     private ShapeRenderer shapeRenderer;
     private boolean isShooting = false;
+    private WebSocketClient webSocketClient;
+    private HashMap<String, Player> otherPlayers = new HashMap<>(); // Store other players
 
     @Override
     public void create() {
@@ -33,6 +43,32 @@ public class Main extends ApplicationAdapter {
             }
             tileset = new Texture(Gdx.files.internal(gameMap.levels.getFirst().layers.getFirst().tilesSheetFile));
             player = new Player("images/player1_idle.png", "images/player1_run.png", 50, 150, 1.5f);
+
+            // Initialize WebSocket connection
+            webSocketClient = new WebSocketClient(new URI("ws://localhost:8888")) {
+                @Override
+                public void onOpen(ServerHandshake handshakedata) {
+                    logger.debug("WebSocket connected");
+                }
+
+                @Override
+                public void onMessage(String message) {
+                    handleServerMessage(message);
+                }
+
+                @Override
+                public void onClose(int code, String reason, boolean remote) {
+                    logger.debug("WebSocket closed: " + reason);
+                }
+
+                @Override
+                public void onError(Exception ex) {
+                    logger.error("WebSocket error", ex);
+                }
+            };
+            webSocketClient.connect();
+        } catch (URISyntaxException e) {
+            logger.error("WebSocket URI error", e);
         } catch (Exception e) {
             logger.error("Error during create", e);
         }
@@ -47,6 +83,13 @@ public class Main extends ApplicationAdapter {
             renderMap();
             player.update(Gdx.graphics.getDeltaTime());
             player.render(batch);
+
+            // Render other players
+            for (Player otherPlayer : otherPlayers.values()) {
+                otherPlayer.update(Gdx.graphics.getDeltaTime());
+                otherPlayer.render(batch);
+            }
+
             batch.end();
 
             // Show map hitbox
@@ -185,6 +228,33 @@ public class Main extends ApplicationAdapter {
             }
         } catch (Exception e) {
             logger.error("Error during renderMap", e);
+        }
+    }
+
+    private void handleServerMessage(String message) {
+        try {
+            JsonValue json = new JsonReader().parse(message);
+            String type = json.getString("type");
+
+            if (type.equals("playerMove")) {
+                String playerId = json.getString("id");
+                float x = json.getFloat("x");
+                float y = json.getFloat("y");
+
+                if (!playerId.equals(player.getId())) { // Ignore updates for the local player
+                    Player otherPlayer = otherPlayers.get(playerId);
+                    if (otherPlayer == null) {
+                        otherPlayer = new Player("images/player2_idle.png", "images/player2_run.png", x, y, 1.5f);
+                        otherPlayers.put(playerId, otherPlayer);
+                    }
+                    otherPlayer.setPosition(x, y);
+                }
+            } else if (type.equals("playerDisconnect")) {
+                String playerId = json.getString("id");
+                otherPlayers.remove(playerId);
+            }
+        } catch (Exception e) {
+            logger.error("Error handling server message", e);
         }
     }
 

@@ -11,6 +11,7 @@ import com.badlogic.gdx.utils.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class Player {
     private static final Logger logger = new Logger(Player.class.getName(), Logger.DEBUG);
@@ -26,7 +27,8 @@ public class Player {
     private ShapeRenderer shapeRenderer;
     private Texture bulletTexture;
     private List<Bullet> bullets;
-
+    private String id;
+    private float speed;
 
     public Player(String idleTextureFilePath, String runTextureFilePath, float initialX, float initialY, float scale) {
         try {
@@ -36,6 +38,8 @@ public class Player {
             this.y = initialY;
             this.scale = scale;
             this.shapeRenderer = new ShapeRenderer();
+            this.id = UUID.randomUUID().toString(); // Generate a unique ID for the player
+            this.speed = speed;
 
             // Assuming each frame is 120x44 pixels
             idleAnimation = createAnimation(idleTexture);
@@ -137,5 +141,14 @@ public class Player {
     }
     public List<Bullet> getBullets() {
         return bullets;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setPosition(float x, float y) {
+        this.x = x;
+        this.y = y;
     }
 }
