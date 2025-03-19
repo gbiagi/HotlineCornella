@@ -109,8 +109,8 @@ public class Player {
     }
 
     public void shoot(Direction direction) {
-        float bulletX = getX() + (idleAnimation.getKeyFrame(0).getRegionWidth() * scale) / 2 - bulletTexture.getWidth() / 2;
-        float bulletY = getY() + (idleAnimation.getKeyFrame(0).getRegionHeight() * scale) / 2 - bulletTexture.getHeight() / 2;
+        float bulletX = getX() + (idleAnimation.getKeyFrame(0).getRegionWidth() * scale) / 2 - (float) bulletTexture.getWidth() / 2;
+        float bulletY = getY() + (idleAnimation.getKeyFrame(0).getRegionHeight() * scale) / 2 - (float) bulletTexture.getHeight() / 2;
         Bullet bullet = new Bullet(bulletTexture, bulletX, bulletY, 300, direction);
         bullets.add(bullet);
     }

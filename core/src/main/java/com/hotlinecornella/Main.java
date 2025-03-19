@@ -49,14 +49,15 @@ public class Main extends ApplicationAdapter {
             player.render(batch);
             batch.end();
 
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+            // Show map hitbox
+            /*shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
             shapeRenderer.setColor(1, 1, 1, 1);
             float scaleX = (float) Gdx.graphics.getWidth() / (gameMap.levels.getFirst().layers.getFirst().tileMap[0].length * gameMap.levels.getFirst().layers.getFirst().tilesWidth);
             float scaleY = (float) Gdx.graphics.getHeight() / (gameMap.levels.getFirst().layers.getFirst().tileMap.length * gameMap.levels.getFirst().layers.getFirst().tilesHeight);
             for (GameMap.Level.Zone zone : gameMap.levels.getFirst().zones) {
                 shapeRenderer.rect(zone.x * scaleX, (Gdx.graphics.getHeight() - (zone.y + zone.height) * scaleY), zone.width * scaleX, zone.height * scaleY);
             }
-            shapeRenderer.end();
+            shapeRenderer.end();*/
 
             checkBulletCollisions();
         } catch (Exception e) {
@@ -70,28 +71,28 @@ public class Main extends ApplicationAdapter {
         float nextY = player.getY();
 
         Direction currentDirection = null;
-        if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+        if (Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A)){
             nextX -= moveSpeed;
             if (willCollide(nextX, nextY)) {
                 player.move(-moveSpeed, 0);
                 currentDirection = Direction.LEFT;
             }
         }
-        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+        else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D)) {
             nextX += moveSpeed;
             if (willCollide(nextX, nextY)) {
                 player.move(moveSpeed, 0);
                 currentDirection = Direction.RIGHT;
             }
         }
-        if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+        else if (Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.W)) {
             nextY += moveSpeed;
             if (willCollide(nextX, nextY)) {
                 player.move(0, moveSpeed);
                 currentDirection = Direction.UP;
             }
         }
-        if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+        else if (Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S)) {
             nextY -= moveSpeed;
             if (willCollide(nextX, nextY)) {
                 player.move(0, -moveSpeed);
@@ -109,7 +110,9 @@ public class Main extends ApplicationAdapter {
         }
 
         if (!(Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.RIGHT) ||
-            Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.DOWN))) {
+            Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.DOWN) ||
+            Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.A) ||
+            Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.D))) {
             player.setRunning(false);
         }
     }
@@ -123,7 +126,12 @@ public class Main extends ApplicationAdapter {
         for (GameMap.Level.Zone zone : gameMap.levels.getFirst().zones) {
             Rectangle zoneRect = new Rectangle(zone.x * scaleX, (Gdx.graphics.getHeight() - (zone.y + zone.height) * scaleY), zone.width * scaleX, zone.height * scaleY);
 
-            if (nextBounds.overlaps(zoneRect) && !zone.type.equals("GameZone")) {
+            if (zone.type.equals("GameZone")) {
+                if (!zoneRect.contains(nextBounds)) {
+                    logger.debug("Player movement restricted to GameZone bounds");
+                    return false;
+                }
+            } else if (nextBounds.overlaps(zoneRect)) {
                 logger.debug("Collision detected at (" + nextX + "," + nextY + ") with " + zone.type);
                 return false;
             }
