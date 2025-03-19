@@ -5,11 +5,11 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 
 public class Bullet {
-    private Texture texture;
+    private final Texture texture;
     private float x, y;
-    private float speed;
-    private Direction direction;
-    private Rectangle bounds;
+    private final float speed;
+    private final Direction direction;
+    private final Rectangle bounds;
 
     public Bullet(Texture texture, float x, float y, float speed, Direction direction) {
         this.texture = texture;

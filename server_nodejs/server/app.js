@@ -8,8 +8,7 @@ const port = process.env.PORT || 8888;
 
 // Inicialitzar WebSockets i la lògica del joc
 const ws = new webSockets();
-const game = new GameLogic(ws); // Pass the WebSocket object
-let gameLoop = new GameLoop();
+
 
 // Inicialitzar servidor Express
 const app = express();
@@ -26,55 +25,19 @@ ws.init(httpServer, port);
 
 ws.onConnection = (socket, id) => {
     if (debug) console.log("WebSocket client connected: " + id);
-    game.addClient(id);
 };
 
-// Helper function to validate and parse JSON safely
-function parseMessage(msg) {
-    try {
-        const parsed = JSON.parse(msg);
-        if (typeof parsed.type === "string" && typeof parsed.id === "string") {
-            return parsed;
-        }
-        throw new Error("Invalid message structure");
-    } catch (error) {
-        console.error("Failed to parse message:", error.message);
-        return null;
-    }
-}
-
 ws.onMessage = (socket, id, msg) => {
-    try {
-        if (typeof msg !== "string") {
-            console.error(`Unexpected message type from ${id}:`, typeof msg);
-            return;
-        }
-
-        const parsedMsg = JSON.parse(msg);
-
-        if (parsedMsg.type === "playerMove") {
-            console.log(`Processing movement message for client ${id}:`, parsedMsg);
-            game.handleMessage(id, parsedMsg);
-        } else {
-            console.error(`Unknown message type from ${id}:`, parsedMsg.type);
-        }
-    } catch (error) {
-        console.error(`Error processing message from ${id}:`, error);
-    }
+    if (debug) console.log(`New message from ${id}: ${msg}`);
+    ws.broadcast(msg)
 };
 
 ws.onClose = (socket, id) => {
     if (debug) console.log("WebSocket client disconnected: " + id);
-    game.removeClient(id);
     ws.broadcast(JSON.stringify({ type: "disconnected", from: "server" }));
 };
 
-// **Game Loop**
-gameLoop.run = (fps) => {
-    game.updateGame(fps);
-    ws.broadcast(JSON.stringify({ type: "update", gameState: game.getGameState() }));
-};
-gameLoop.start();
+
 
 // Gestionar el tancament del servidor
 process.on('SIGTERM', shutDown);
@@ -84,6 +47,5 @@ function shutDown() {
     console.log('Rebuda senyal de tancament, aturant el servidor...');
     httpServer.close();
     ws.end();
-    gameLoop.stop();
     process.exit(0);
 }
