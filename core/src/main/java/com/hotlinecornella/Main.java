@@ -21,14 +21,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 public class Main extends ApplicationAdapter {
-    private static final Logger logger = new Logger(Main.class.getName(), Logger.DEBUG);
+    static final Logger logger = new Logger(Main.class.getName(), Logger.DEBUG);
     private SpriteBatch batch;
     private Texture tileset;
     private GameMap gameMap;
     private Player player;
     private ShapeRenderer shapeRenderer;
     private boolean isShooting = false;
-    private WebSocketClient webSocketClient;
+    private WsClient webSocketClient;
     private HashMap<String, Player> otherPlayers = new HashMap<>(); // Store other players
 
     @Override
@@ -45,26 +45,7 @@ public class Main extends ApplicationAdapter {
             player = new Player("images/player1_idle.png", "images/player1_run.png", 50, 150, 1.5f);
 
             // Initialize WebSocket connection
-            webSocketClient = new WebSocketClient(new URI("ws://localhost:8888")) {
-                @Override
-                public void onOpen(ServerHandshake handshakedata) {
-                    logger.debug("WebSocket connected");
-                }
-
-                @Override
-                public void onMessage(String message) {
-                    handleServerMessage(message);
-                }
-
-                @Override
-                public void onClose(int code, String reason, boolean remote) {
-                    logger.debug("WebSocket closed: " + reason);
-                }
-
-                @Override
-                public void onError(Exception ex) {
-                    logger.error("WebSocket error", ex);
-                }
+            webSocketClient = new WsClient(new URI("ws://localhost:8888")) {
             };
             webSocketClient.connect();
         } catch (URISyntaxException e) {
@@ -89,7 +70,7 @@ public class Main extends ApplicationAdapter {
                 otherPlayer.update(Gdx.graphics.getDeltaTime());
                 otherPlayer.render(batch);
             }
-
+            checkBulletCollisions();
             batch.end();
 
             // Show map hitbox
@@ -102,7 +83,6 @@ public class Main extends ApplicationAdapter {
             }
             shapeRenderer.end();*/
 
-            checkBulletCollisions();
         } catch (Exception e) {
             logger.error("Error during render", e);
         }
@@ -119,6 +99,7 @@ public class Main extends ApplicationAdapter {
             if (willCollide(nextX, nextY)) {
                 player.move(-moveSpeed, 0);
                 currentDirection = Direction.LEFT;
+                sendPlayerMoveMessage();
             }
         }
         else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D)) {
@@ -126,6 +107,7 @@ public class Main extends ApplicationAdapter {
             if (willCollide(nextX, nextY)) {
                 player.move(moveSpeed, 0);
                 currentDirection = Direction.RIGHT;
+                sendPlayerMoveMessage();
             }
         }
         else if (Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.W)) {
@@ -133,6 +115,7 @@ public class Main extends ApplicationAdapter {
             if (willCollide(nextX, nextY)) {
                 player.move(0, moveSpeed);
                 currentDirection = Direction.UP;
+                sendPlayerMoveMessage();
             }
         }
         else if (Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S)) {
@@ -140,6 +123,7 @@ public class Main extends ApplicationAdapter {
             if (willCollide(nextX, nextY)) {
                 player.move(0, -moveSpeed);
                 currentDirection = Direction.DOWN;
+                sendPlayerMoveMessage();
             }
         }
 
@@ -158,6 +142,10 @@ public class Main extends ApplicationAdapter {
             Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.D))) {
             player.setRunning(false);
         }
+    }
+    private void sendPlayerMoveMessage() {
+        String message = player.getX() + ", " + player.getY();
+        webSocketClient.send(new Json().toJson(message));
     }
 
     private boolean willCollide(float nextX, float nextY) {
@@ -228,33 +216,6 @@ public class Main extends ApplicationAdapter {
             }
         } catch (Exception e) {
             logger.error("Error during renderMap", e);
-        }
-    }
-
-    private void handleServerMessage(String message) {
-        try {
-            JsonValue json = new JsonReader().parse(message);
-            String type = json.getString("type");
-
-            if (type.equals("playerMove")) {
-                String playerId = json.getString("id");
-                float x = json.getFloat("x");
-                float y = json.getFloat("y");
-
-                if (!playerId.equals(player.getId())) { // Ignore updates for the local player
-                    Player otherPlayer = otherPlayers.get(playerId);
-                    if (otherPlayer == null) {
-                        otherPlayer = new Player("images/player2_idle.png", "images/player2_run.png", x, y, 1.5f);
-                        otherPlayers.put(playerId, otherPlayer);
-                    }
-                    otherPlayer.setPosition(x, y);
-                }
-            } else if (type.equals("playerDisconnect")) {
-                String playerId = json.getString("id");
-                otherPlayers.remove(playerId);
-            }
-        } catch (Exception e) {
-            logger.error("Error handling server message", e);
         }
     }
 

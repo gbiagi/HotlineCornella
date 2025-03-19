@@ -134,7 +134,7 @@ class GameLogic {
     getAvailableColor() {
         let assignedColors = new Set(Array.from(this.players.values()).map(client => client.color));
         let availableColors = COLORS.filter(color => !assignedColors.has(color));
-        return availableColors.length > 0 
+        return availableColors.length > 0
           ? availableColors[Math.floor(Math.random() * availableColors.length)]
           : COLORS[Math.floor(Math.random() * COLORS.length)];
     }
