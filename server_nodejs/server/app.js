@@ -5,6 +5,7 @@ const GameLoop = require('./utilsGameLoop.js');
 
 const debug = true;
 const port = process.env.PORT || 8888;
+let players = [];
 
 // Inicialitzar WebSockets i la lògica del joc
 const ws = new webSockets();
@@ -26,25 +27,43 @@ ws.init(httpServer, port);
 ws.onConnection = (socket, id) => {
     if (debug) console.log("WebSocket client connected: " + id);
     // Wait 3s before sending the welcome message
-    setTimeout(() => {
-        console.log("Sending welcome message ");
-        socket.send(JSON.stringify({ type: "welcome", from: "server" }));
-    }, 5000);
-    ws.broadcast(JSON.stringify({ type: "ok", from: "server" }));
-    socket.send(JSON.stringify({ type: "welcome", from: "server" }));
-
+    socket.send(JSON.stringify({ type: "connected", from: "server" }));
+    players.push(socket);
+    console.log("Players connected: " + players.length);
+    if (players.length === 2) {
+        launchGame();
+    }
 };
 
 ws.onMessage = (socket, id, msg) => {
     if (debug) console.log(`New message from ${id}: ${msg}`);
-    ws.broadcast(msg)
+    const message = JSON.parse(msg);
+    if (message.type === "playerMove") {
+        players.forEach(player => {
+            if (player !== socket) {
+                player.send(msg);
+            }
+        });
+    } else if (message.type === "playerStopped") {
+        players.forEach(player => {
+            if (player !== socket) {
+                player.send(msg);
+            }
+        });
+    }
 };
 
 ws.onClose = (socket, id) => {
     if (debug) console.log("WebSocket client disconnected: " + id);
+    players = players.filter(player => player !== socket);
+    console.log("Players connected: " + players.length);
     ws.broadcast(JSON.stringify({ type: "disconnected", from: "server" }));
 };
 
+function launchGame() {
+    console.log("Launching game...");
+    ws.broadcast(JSON.stringify({ type: "gameStart", from: "server" }));
+}
 
 
 // Gestionar el tancament del servidor
