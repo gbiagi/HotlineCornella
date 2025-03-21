@@ -25,6 +25,14 @@ ws.init(httpServer, port);
 
 ws.onConnection = (socket, id) => {
     if (debug) console.log("WebSocket client connected: " + id);
+    // Wait 3s before sending the welcome message
+    setTimeout(() => {
+        console.log("Sending welcome message ");
+        socket.send(JSON.stringify({ type: "welcome", from: "server" }));
+    }, 5000);
+    ws.broadcast(JSON.stringify({ type: "ok", from: "server" }));
+    socket.send(JSON.stringify({ type: "welcome", from: "server" }));
+
 };
 
 ws.onMessage = (socket, id, msg) => {

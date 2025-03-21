@@ -7,14 +7,12 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.utils.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class Player {
-    private static final Logger logger = new Logger(Player.class.getName(), Logger.DEBUG);
     private Texture idleTexture;
     private Texture runTexture;
     private Animation<TextureRegion> idleAnimation;
@@ -50,7 +48,7 @@ public class Player {
             bullets = new ArrayList<>();
 
         } catch (Exception e) {
-            logger.error("Error loading player textures", e);
+            System.out.println("Error loading player textures" + e);
         }
     }
 
@@ -95,7 +93,7 @@ public class Player {
 //            shapeRenderer.end();
 
         } catch (Exception e) {
-            logger.error("Error rendering player", e);
+            System.out.println("Error rendering player" + e);
         }
     }
 

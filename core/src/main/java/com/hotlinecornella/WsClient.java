@@ -2,10 +2,9 @@ package com.hotlinecornella;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
+import org.json.JSONObject;
 
 import java.net.URI;
-
-import static com.hotlinecornella.Main.logger;
 
 public class WsClient extends WebSocketClient {
 
@@ -15,24 +14,30 @@ public class WsClient extends WebSocketClient {
 
     @Override
     public void onOpen(ServerHandshake handshakedata) {
-        logger.debug("WebSocket connected");
+        System.out.println("WebSocket connected");
     }
 
     @Override
     public void onMessage(String message) {
-        handleServerMessage(message);
+        System.out.println("Hola?");
+        System.out.println("Received message: " + message);
+        JSONObject obj = new JSONObject(message);
+        if (obj.has("type")) {
+            String type = obj.getString("type");
+            if (type.equals("ok")) {
+                System.out.println("Received OK");
+            }
+        }
     }
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        logger.debug("WebSocket closed: " + reason);
+        System.out.println("WebSocket closed: " + reason);
     }
 
     @Override
     public void onError(Exception ex) {
-        logger.error("WebSocket error", ex);
+        System.out.println("WebSocket error" + ex);
     }
-    private void handleServerMessage(String message) {
-        System.out.println("Received message: " + message);
-    }
+
 }
