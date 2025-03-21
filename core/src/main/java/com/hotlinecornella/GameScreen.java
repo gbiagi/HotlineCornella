@@ -9,22 +9,26 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.Json;
+import org.json.JSONObject;
+
 import java.util.HashMap;
 import java.util.Iterator;
 
 
 public class GameScreen extends ScreenAdapter {
+    private WsClient webSocketClient;
     private final Main game;
     private SpriteBatch batch;
     private Texture tileset;
     private GameMap gameMap;
     private Player player;
+    private Player rival;
     private ShapeRenderer shapeRenderer;
     private boolean isShooting = false;
-    private HashMap<String, Player> otherPlayers = new HashMap<>();
 
     public GameScreen(Main game) {
         this.game = game;
+        webSocketClient = WsClient.getInstance(game);
         create();
     }
 
@@ -39,6 +43,7 @@ public class GameScreen extends ScreenAdapter {
             }
             tileset = new Texture(Gdx.files.internal(gameMap.levels.getFirst().layers.getFirst().tilesSheetFile));
             player = new Player("images/player1_idle.png", "images/player1_run.png", 50, 150, 1.5f);
+            rival = new Player("images/player2_idle.png", "images/player2_run.png", 700, 650, 1.5f);
         } catch (Exception e) {
             System.out.println("Error during create " + e);
         }
@@ -51,13 +56,13 @@ public class GameScreen extends ScreenAdapter {
             ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
             batch.begin();
             renderMap();
+            // Render player
             player.update(delta);
             player.render(batch);
+            // Render rival
+            rival.update(delta);
+            rival.render(batch);
 
-            for (Player otherPlayer : otherPlayers.values()) {
-                otherPlayer.update(delta);
-                otherPlayer.render(batch);
-            }
             checkBulletCollisions();
             batch.end();
         } catch (Exception e) {
@@ -66,8 +71,25 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void sendPlayerMoveMessage() {
-        String message = player.getX() + ", " + player.getY();
-        game.getWebSocketClient().send(new Json().toJson(message));
+        JSONObject message = new JSONObject();
+        message.put("type", "playerMove");
+        message.put("x", player.getX());
+        message.put("y", player.getY());
+        webSocketClient.send(message.toString());
+    }
+    private void sendPlayerStoppedMessage() {
+        JSONObject message = new JSONObject();
+        message.put("type", "playerStopped");
+        message.put("running", "false");
+        webSocketClient.send(message.toString());
+    }
+    public void updateRivalPosition(float x, float y) {
+        // Update rival position
+        rival.setPosition(x, y);
+        rival.setRunning(true);
+    }
+    public void stopRival() {
+        rival.setRunning(false);
     }
 
     private void handleInput() {
@@ -120,6 +142,7 @@ public class GameScreen extends ScreenAdapter {
                 Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.A) ||
                 Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.D))) {
             player.setRunning(false);
+            sendPlayerStoppedMessage();
         }
     }
 
