@@ -115,40 +115,29 @@ public class Player {
         bullets.add(bullet);
     }
 
-    public void setRunning(boolean running) {
-        isRunning = running;
-    }
-
     public void dispose() {
         idleTexture.dispose();
         runTexture.dispose();
     }
-
     public Rectangle getBounds() {
         return new Rectangle(x, y, idleAnimation.getKeyFrame(0).getRegionWidth() * scale, idleAnimation.getKeyFrame(0).getRegionHeight() * scale);
     }
-
     public float getX() {
         return x;
     }
-
     public float getY() {
         return y;
     }
     public List<Bullet> getBullets() {
         return bullets;
     }
-
-    public String getId() {
-        return id;
+    public void setRunning(boolean running) {
+        isRunning = running;
     }
-
-    public void setPosition(float x, float y) {
-        this.x = x;
-        this.y = y;
-    }
-
     public boolean isRunning() {
         return isRunning;
+    }
+    public String getId() {
+        return id;
     }
 }
