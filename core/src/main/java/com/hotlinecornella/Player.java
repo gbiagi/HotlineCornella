@@ -147,4 +147,8 @@ public class Player {
         this.x = x;
         this.y = y;
     }
+
+    public boolean isRunning() {
+        return isRunning;
+    }
 }
