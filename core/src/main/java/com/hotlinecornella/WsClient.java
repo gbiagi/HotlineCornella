@@ -43,24 +43,26 @@ public class WsClient extends WebSocketClient {
                 JSONObject obj = new JSONObject(message);
                 if (obj.has("type")) {
                     String type = obj.getString("type");
-                    if (type.equals("gameStart")) {
-                        System.out.println("Starting game...");
-                        if (!(gameInstance.getScreen() instanceof GameScreen)){
-                            gameInstance.setScreen(new GameScreen(gameInstance));
+                    switch (type) {
+                        case "gameStart" -> {
+                            System.out.println("Starting game...");
+                            if (!(gameInstance.getScreen() instanceof GameScreen)) {
+                                gameInstance.setScreen(new GameScreen(gameInstance));
+                            }
                         }
-                    }
-                    else if (type.equals("playerMove")) {
-                        // Handle player movement message
-                        float x = (float) obj.getDouble("x");
-                        float y = (float) obj.getDouble("y");
+                        case "playerMove" -> {
+                            // Handle player movement message
+                            float x = (float) obj.getDouble("x");
+                            float y = (float) obj.getDouble("y");
 
-                        if (gameInstance.getScreen() instanceof GameScreen gameScreen) {
-                            gameScreen.updateRivalPosition(x, y);
+                            if (gameInstance.getScreen() instanceof GameScreen gameScreen) {
+                                gameScreen.updateRivalPosition(x, y);
+                            }
                         }
-                    }
-                    else if (type.equals("playerStopped")) {
-                        if (gameInstance.getScreen() instanceof GameScreen gameScreen) {
-                            gameScreen.stopRival();
+                        case "playerStopped" -> {
+                            if (gameInstance.getScreen() instanceof GameScreen gameScreen) {
+                                gameScreen.stopRival();
+                            }
                         }
                     }
                 }

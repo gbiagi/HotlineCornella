@@ -84,9 +84,13 @@ public class GameScreen extends ScreenAdapter {
         webSocketClient.send(message.toString());
     }
     public void updateRivalPosition(float x, float y) {
-        // Update rival position
-        rival.setPosition(x, y);
-        rival.setRunning(true);
+        // Calculate the difference in position
+        float deltaX = x - rival.getX();
+        float deltaY = y - rival.getY();
+
+        // Move the rival by the calculated difference
+        rival.move(deltaX, deltaY);
+        //rival.setRunning(true);
     }
     public void stopRival() {
         rival.setRunning(false);
@@ -140,7 +144,7 @@ public class GameScreen extends ScreenAdapter {
         if (!(Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.RIGHT) ||
                 Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.DOWN) ||
                 Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.A) ||
-                Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.D))) {
+                Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.D)) && player.isRunning()) {
             player.setRunning(false);
             sendPlayerStoppedMessage();
         }
