@@ -45,11 +45,9 @@ public class Bullet {
     public Rectangle getBounds() {
         return bounds;
     }
-
     public float getX() {
         return x;
     }
-
     public float getY() {
         return y;
     }

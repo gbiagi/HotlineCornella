@@ -14,7 +14,6 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Iterator;
 
-
 public class GameScreen extends ScreenAdapter {
     private WsClient webSocketClient;
     private final Main game;
@@ -64,9 +63,38 @@ public class GameScreen extends ScreenAdapter {
             rival.render(batch);
 
             checkBulletCollisions();
+
             batch.end();
         } catch (Exception e) {
-            System.out.println("Error during render " +  e);
+            System.out.println("Error during render " + e);
+        }
+    }
+
+    private void renderMap() {
+        try {
+            GameMap.Level.Layer layer = gameMap.levels.getFirst().layers.getFirst();
+            int tileWidth = layer.tilesWidth;
+            int tileHeight = layer.tilesHeight;
+            int mapWidth = layer.tileMap[0].length * tileWidth;
+            int mapHeight = layer.tileMap.length * tileHeight;
+
+            float scaleX = (float) Gdx.graphics.getWidth() / mapWidth;
+            float scaleY = (float) Gdx.graphics.getHeight() / mapHeight;
+
+            for (int y = 0; y < layer.tileMap.length; y++) {
+                for (int x = 0; x < layer.tileMap[y].length; x++) {
+                    int tileId = layer.tileMap[y][x];
+                    if (tileId != 0) {
+                        int srcX = (tileId % (tileset.getWidth() / tileWidth)) * tileWidth;
+                        int srcY = (tileId / (tileset.getWidth() / tileWidth)) * tileHeight;
+                        batch.draw(tileset, x * tileWidth * scaleX,
+                                Gdx.graphics.getHeight() - (y + 1) * tileHeight * scaleY, tileWidth * scaleX,
+                                tileHeight * scaleY, srcX, srcY, tileWidth, tileHeight, false, false);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error during renderMap" + e);
         }
     }
 
@@ -77,12 +105,21 @@ public class GameScreen extends ScreenAdapter {
         message.put("y", player.getY());
         webSocketClient.send(message.toString());
     }
+
     private void sendPlayerStoppedMessage() {
         JSONObject message = new JSONObject();
         message.put("type", "playerStopped");
         message.put("running", "false");
         webSocketClient.send(message.toString());
     }
+
+    private void sendPlayerShootMessage(Direction direction) {
+        JSONObject message = new JSONObject();
+        message.put("type", "playerShoot");
+        message.put("direction", direction.toString());
+        webSocketClient.send(message.toString());
+    }
+
     public void updateRivalPosition(float x, float y) {
         // Calculate the difference in position
         float deltaX = x - rival.getX();
@@ -90,10 +127,15 @@ public class GameScreen extends ScreenAdapter {
 
         // Move the rival by the calculated difference
         rival.move(deltaX, deltaY);
-        //rival.setRunning(true);
+        rival.setRunning(true);
     }
+
     public void stopRival() {
         rival.setRunning(false);
+    }
+
+    public void rivalShoot(Direction direction) {
+        rival.shoot(direction);
     }
 
     private void handleInput() {
@@ -136,6 +178,7 @@ public class GameScreen extends ScreenAdapter {
             if (!isShooting && currentDirection != null) {
                 player.shoot(currentDirection);
                 isShooting = true;
+                sendPlayerShootMessage(currentDirection);
             }
         } else {
             isShooting = false;
@@ -173,35 +216,13 @@ public class GameScreen extends ScreenAdapter {
                 return false;
             }
         }
-        return true;
-    }
-
-    private void renderMap() {
-        try {
-            GameMap.Level.Layer layer = gameMap.levels.getFirst().layers.getFirst();
-            int tileWidth = layer.tilesWidth;
-            int tileHeight = layer.tilesHeight;
-            int mapWidth = layer.tileMap[0].length * tileWidth;
-            int mapHeight = layer.tileMap.length * tileHeight;
-
-            float scaleX = (float) Gdx.graphics.getWidth() / mapWidth;
-            float scaleY = (float) Gdx.graphics.getHeight() / mapHeight;
-
-            for (int y = 0; y < layer.tileMap.length; y++) {
-                for (int x = 0; x < layer.tileMap[y].length; x++) {
-                    int tileId = layer.tileMap[y][x];
-                    if (tileId != 0) {
-                        int srcX = (tileId % (tileset.getWidth() / tileWidth)) * tileWidth;
-                        int srcY = (tileId / (tileset.getWidth() / tileWidth)) * tileHeight;
-                        batch.draw(tileset, x * tileWidth * scaleX,
-                                Gdx.graphics.getHeight() - (y + 1) * tileHeight * scaleY, tileWidth * scaleX,
-                                tileHeight * scaleY, srcX, srcY, tileWidth, tileHeight, false, false);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("Error during renderMap" + e);
+        // Check collision with rival
+        Rectangle rivalBounds = rival.getBounds();
+        if (nextBounds.overlaps(rivalBounds)) {
+            System.out.println("Collision detected with rival at (" + nextX + "," + nextY + ")");
+            return false;
         }
+        return true;
     }
 
     private void checkBulletCollisions() {
@@ -209,12 +230,31 @@ public class GameScreen extends ScreenAdapter {
                 * gameMap.levels.getFirst().layers.getFirst().tilesWidth);
         float scaleY = (float) Gdx.graphics.getHeight() / (gameMap.levels.getFirst().layers.getFirst().tileMap.length
                 * gameMap.levels.getFirst().layers.getFirst().tilesHeight);
+        // Check both players bullets collision
 
-        Iterator<Bullet> bulletIterator = player.getBullets().iterator();
+        checkPlayerBullets(player, scaleX, scaleY);
+        checkPlayerBullets(rival, scaleX, scaleY);
+    }
+
+    private void checkPlayerBullets(Player playerChecked, float scaleX, float scaleY) {
+        Iterator<Bullet> bulletIterator = playerChecked.getBullets().iterator();
         while (bulletIterator.hasNext()) {
             Bullet bullet = bulletIterator.next();
             Rectangle bulletBounds = bullet.getBounds();
+            Rectangle rivalBounds = rival.getBounds();
+            Rectangle playerBounds = player.getBounds();
 
+            if (playerChecked.equals(player)) {
+                if (bulletBounds.overlaps(rivalBounds)) {
+                    System.out.println("Bullet collision detected with rival");
+                    bulletIterator.remove();
+                    break;
+                }
+            } else if (bulletBounds.overlaps(playerBounds)) {
+                System.out.println("Bullet collision detected with player");
+                bulletIterator.remove();
+                break;
+            }
             for (GameMap.Level.Zone zone : gameMap.levels.getFirst().zones) {
                 Rectangle zoneRect = new Rectangle(zone.x * scaleX,
                         (Gdx.graphics.getHeight() - (zone.y + zone.height) * scaleY), zone.width * scaleX,
@@ -228,6 +268,7 @@ public class GameScreen extends ScreenAdapter {
                     break;
                 }
             }
+
         }
     }
 

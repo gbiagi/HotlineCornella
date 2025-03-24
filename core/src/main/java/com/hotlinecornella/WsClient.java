@@ -36,7 +36,7 @@ public class WsClient extends WebSocketClient {
 
     @Override
     public void onMessage(String message) {
-        System.out.println("Received message: " + message);
+        //System.out.println("Received message: " + message);
         // Post to the main render thread
         Gdx.app.postRunnable(() -> {
             try {
@@ -62,6 +62,12 @@ public class WsClient extends WebSocketClient {
                         case "playerStopped" -> {
                             if (gameInstance.getScreen() instanceof GameScreen gameScreen) {
                                 gameScreen.stopRival();
+                            }
+                        }
+                        case "playerShoot" -> {
+                            if (gameInstance.getScreen() instanceof GameScreen gameScreen) {
+                                Direction direction = Direction.valueOf(obj.getString("direction"));
+                                gameScreen.rivalShoot(direction);
                             }
                         }
                     }

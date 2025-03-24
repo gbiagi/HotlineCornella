@@ -38,18 +38,28 @@ ws.onConnection = (socket, id) => {
 ws.onMessage = (socket, id, msg) => {
     if (debug) console.log(`New message from ${id}: ${msg}`);
     const message = JSON.parse(msg);
-    if (message.type === "playerMove") {
-        players.forEach(player => {
-            if (player !== socket) {
-                player.send(msg);
-            }
-        });
-    } else if (message.type === "playerStopped") {
-        players.forEach(player => {
-            if (player !== socket) {
-                player.send(msg);
-            }
-        });
+    switch (message.type) {
+        case "playerMove":
+            players.forEach(player => {
+                if (player !== socket) {
+                    player.send(msg);
+                }
+            });
+            break;
+        case "playerStopped":
+            players.forEach(player => {
+                if (player !== socket) {
+                    player.send(msg);
+                }
+            });
+            break;
+        case "playerShoot":
+            players.forEach(player => {
+                if (player !== socket) {
+                    player.send(msg);
+                }
+            });
+            break;
     }
 };
 
