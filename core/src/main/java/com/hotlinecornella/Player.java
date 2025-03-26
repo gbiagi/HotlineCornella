@@ -26,6 +26,7 @@ public class Player {
     private Texture bulletTexture;
     private List<Bullet> bullets;
     private String id;
+    private int health;
 
     public Player(String idleTextureFilePath, String runTextureFilePath, float initialX, float initialY, float scale) {
         try {
@@ -36,6 +37,8 @@ public class Player {
             this.scale = scale;
             this.shapeRenderer = new ShapeRenderer();
             this.id = UUID.randomUUID().toString(); // Generate a unique ID for the player
+
+            health = 50;
 
             // Assuming each frame is 120x44 pixels
             idleAnimation = createAnimation(idleTexture);
@@ -139,5 +142,11 @@ public class Player {
     }
     public String getId() {
         return id;
+    }
+    public int getHealth() {
+        return health;
+    }
+    public void setHealth(int health) {
+        this.health = health;
     }
 }
