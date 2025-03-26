@@ -103,7 +103,6 @@ function launchGame() {
 function endGame() {
     console.log("Game over...");
     ws.broadcast(JSON.stringify({ type: "gameOver", from: "server" }));
-    players = [];
 }
 
 
