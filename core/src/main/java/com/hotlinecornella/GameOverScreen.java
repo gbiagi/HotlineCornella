@@ -28,9 +28,9 @@ public class GameOverScreen extends ScreenAdapter {
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
         batch.begin();
         if (gameWon) {
-            font.draw(batch, "Game Won! Congratulations!", Gdx.graphics.getWidth() / 2f, Gdx.graphics.getHeight() / 2f);
+            font.draw(batch, "Game Won! Congratulations!", Gdx.graphics.getWidth() / 2.5f, Gdx.graphics.getHeight() / 2f);
         } else {
-            font.draw(batch, "Game Over! You lost!", Gdx.graphics.getWidth() / 2f, Gdx.graphics.getHeight() / 2f);
+            font.draw(batch, "Game Over! You lost!", Gdx.graphics.getWidth() / 2.5f, Gdx.graphics.getHeight() / 2f);
         }
         batch.end();
     }

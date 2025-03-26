@@ -19,12 +19,9 @@ public class WaitingRoom extends ScreenAdapter {
     public void render(float delta) {
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
         batch.begin();
-        font.draw(batch, "Waiting for players...", Gdx.graphics.getWidth() / 2f, Gdx.graphics.getHeight() / 2f);
+        font.draw(batch, "Waiting for players...", Gdx.graphics.getWidth() / 2.5f, Gdx.graphics.getHeight() / 2f);
         batch.end();
     }
-
-
-
     @Override
     public void dispose() {
         batch.dispose();
