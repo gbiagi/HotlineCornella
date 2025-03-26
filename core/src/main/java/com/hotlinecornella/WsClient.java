@@ -30,6 +30,12 @@ public class WsClient extends WebSocketClient {
         return instance;
     }
 
+    public static void connectInstance() {
+        if (instance != null) {
+            instance.connect();
+        }
+    }
+
     @Override
     public void onOpen(ServerHandshake handshakedata) {
         System.out.println("WebSocket connected");
@@ -81,7 +87,7 @@ public class WsClient extends WebSocketClient {
                             if (gameInstance.getScreen() instanceof GameScreen gameScreen) {
                                 boolean gameWon = obj.getBoolean("gameWon");
                                 gameInstance.setScreen(new GameOverScreen(gameWon));
-                                this.close();
+                                instance.close();
                             }
                         }
                     }
