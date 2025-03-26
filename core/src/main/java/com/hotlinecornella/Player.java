@@ -99,7 +99,35 @@ public class Player {
             System.out.println("Error rendering player" + e);
         }
     }
+    public void renderHealthBar(ShapeRenderer shapeRenderer) {
+        // Get the dimensions for positioning
+        float healthBarWidth = idleAnimation.getKeyFrame(0).getRegionWidth() * scale;
+        float healthBarHeight = 5;
 
+        // Position the health bar above the player
+        float healthBarX = x;
+        float healthBarY = y + (idleAnimation.getKeyFrame(0).getRegionHeight() * scale) + 5;
+
+        // Calculate the filled portion based on health percentage
+        float healthPercentage = health / 50f;
+        float fillWidth = healthPercentage * healthBarWidth;
+
+        // Interpolate color from green to red based on health percentage
+        float red = 1 - healthPercentage;
+
+        // Begin shape renderer
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+        // Draw the background (empty health bar)
+        shapeRenderer.setColor(0.5f, 0, 0, 1); // Dark red for background
+        shapeRenderer.rect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+
+        // Draw the filled portion with interpolated color
+        shapeRenderer.setColor(red, healthPercentage, 0, 1); // Interpolated color
+        shapeRenderer.rect(healthBarX, healthBarY, fillWidth, healthBarHeight);
+
+        shapeRenderer.end();
+    }
     public void move(float deltaX, float deltaY) {
         x += deltaX;
         y += deltaY;
@@ -110,7 +138,6 @@ public class Player {
             flipX = false;
         }
     }
-
     public void shoot(Direction direction) {
         float bulletX = getX() + (idleAnimation.getKeyFrame(0).getRegionWidth() * scale) / 2 - (float) bulletTexture.getWidth() / 2;
         float bulletY = getY() + (idleAnimation.getKeyFrame(0).getRegionHeight() * scale) / 2 - (float) bulletTexture.getHeight() / 2;
@@ -118,10 +145,6 @@ public class Player {
         bullets.add(bullet);
     }
 
-    public void dispose() {
-        idleTexture.dispose();
-        runTexture.dispose();
-    }
     public Rectangle getBounds() {
         return new Rectangle(x, y, idleAnimation.getKeyFrame(0).getRegionWidth() * scale, idleAnimation.getKeyFrame(0).getRegionHeight() * scale);
     }
@@ -149,4 +172,14 @@ public class Player {
     public void setHealth(int health) {
         this.health = health;
     }
+    public void playerHit() {
+        if (health > 0) {
+            health -= 10;
+        }
+    }
+    public void dispose() {
+        idleTexture.dispose();
+        runTexture.dispose();
+    }
+
 }

@@ -24,8 +24,10 @@ public class GameScreen extends ScreenAdapter {
     private Player rival;
     private ShapeRenderer shapeRenderer;
     private boolean isShooting = false;
+    int position;
 
-    public GameScreen(Main game) {
+    public GameScreen(Main game, int position) {
+        this.position = position;
         this.game = game;
         webSocketClient = WsClient.getInstance(game);
         create();
@@ -41,8 +43,15 @@ public class GameScreen extends ScreenAdapter {
                 return;
             }
             tileset = new Texture(Gdx.files.internal(gameMap.levels.getFirst().layers.getFirst().tilesSheetFile));
-            player = new Player("images/player1_idle.png", "images/player1_run.png", 50, 150, 1.5f);
-            rival = new Player("images/player2_idle.png", "images/player2_run.png", 700, 650, 1.5f);
+
+            if (position == 1) {
+                player = new Player("images/player1_idle.png", "images/player1_run.png", 50, 150, 1.5f);
+                rival = new Player("images/player2_idle.png", "images/player2_run.png", 700, 650, 1.5f);
+            } else {
+                rival = new Player("images/player1_idle.png", "images/player1_run.png", 50, 150, 1.5f);
+                player = new Player("images/player2_idle.png", "images/player2_run.png", 700, 650, 1.5f);
+            }
+
         } catch (Exception e) {
             System.out.println("Error during create " + e);
         }
@@ -53,6 +62,8 @@ public class GameScreen extends ScreenAdapter {
         try {
             handleInput();
             ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
+
+            // Render the map and sprites
             batch.begin();
             renderMap();
             // Render player
@@ -61,15 +72,18 @@ public class GameScreen extends ScreenAdapter {
             // Render rival
             rival.update(delta);
             rival.render(batch);
-
-            checkBulletCollisions();
-
             batch.end();
+
+            // Then render the health bars
+            player.renderHealthBar(shapeRenderer);
+            rival.renderHealthBar(shapeRenderer);
+
+            // Continue with bullet collisions
+            checkBulletCollisions();
         } catch (Exception e) {
             System.out.println("Error during render " + e);
         }
     }
-
     private void renderMap() {
         try {
             GameMap.Level.Layer layer = gameMap.levels.getFirst().layers.getFirst();
@@ -105,18 +119,27 @@ public class GameScreen extends ScreenAdapter {
         message.put("y", player.getY());
         webSocketClient.send(message.toString());
     }
-
     private void sendPlayerStoppedMessage() {
         JSONObject message = new JSONObject();
         message.put("type", "playerStopped");
         message.put("running", "false");
         webSocketClient.send(message.toString());
     }
-
     private void sendPlayerShootMessage(Direction direction) {
         JSONObject message = new JSONObject();
         message.put("type", "playerShoot");
         message.put("direction", direction.toString());
+        webSocketClient.send(message.toString());
+    }
+    private void sendPlayerHitMessage() {
+        JSONObject message = new JSONObject();
+        message.put("type", "playerHit");
+        webSocketClient.send(message.toString());
+    }
+    private void sendGameOverMessage(boolean gameWon) {
+        JSONObject message = new JSONObject();
+        message.put("type", "gameOver");
+        message.put("gameWon", gameWon);
         webSocketClient.send(message.toString());
     }
 
@@ -129,13 +152,14 @@ public class GameScreen extends ScreenAdapter {
         rival.move(deltaX, deltaY);
         rival.setRunning(true);
     }
-
     public void stopRival() {
         rival.setRunning(false);
     }
-
     public void rivalShoot(Direction direction) {
         rival.shoot(direction);
+    }
+    public void rivalHit() {
+        rival.playerHit();
     }
 
     private void handleInput() {
@@ -192,7 +216,6 @@ public class GameScreen extends ScreenAdapter {
             sendPlayerStoppedMessage();
         }
     }
-
     private boolean willCollide(float nextX, float nextY) {
         float scaleX = (float) Gdx.graphics.getWidth() / (gameMap.levels.getFirst().layers.getFirst().tileMap[0].length
                 * gameMap.levels.getFirst().layers.getFirst().tilesWidth);
@@ -224,18 +247,16 @@ public class GameScreen extends ScreenAdapter {
         }
         return true;
     }
-
     private void checkBulletCollisions() {
         float scaleX = (float) Gdx.graphics.getWidth() / (gameMap.levels.getFirst().layers.getFirst().tileMap[0].length
                 * gameMap.levels.getFirst().layers.getFirst().tilesWidth);
         float scaleY = (float) Gdx.graphics.getHeight() / (gameMap.levels.getFirst().layers.getFirst().tileMap.length
                 * gameMap.levels.getFirst().layers.getFirst().tilesHeight);
-        // Check both players bullets collision
 
+        // Check both players bullets collision
         checkPlayerBullets(player, scaleX, scaleY);
         checkPlayerBullets(rival, scaleX, scaleY);
     }
-
     private void checkPlayerBullets(Player playerChecked, float scaleX, float scaleY) {
         Iterator<Bullet> bulletIterator = playerChecked.getBullets().iterator();
         while (bulletIterator.hasNext()) {
@@ -253,6 +274,13 @@ public class GameScreen extends ScreenAdapter {
             } else if (bulletBounds.overlaps(playerBounds)) {
                 System.out.println("Bullet collision detected with player");
                 bulletIterator.remove();
+                player.playerHit();
+                sendPlayerHitMessage();
+                if (player.getHealth() <= 0) {
+                    System.out.println("Player defeated");
+                    // End game
+                    sendGameOverMessage(false);
+                }
                 break;
             }
             for (GameMap.Level.Zone zone : gameMap.levels.getFirst().zones) {
