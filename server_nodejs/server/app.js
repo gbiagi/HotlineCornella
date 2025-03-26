@@ -1,7 +1,5 @@
 const express = require('express');
-const GameLogic = require('./gameLogic.js');
 const webSockets = require('./utilsWebSockets.js');
-const GameLoop = require('./utilsGameLoop.js');
 
 const debug = true;
 const port = process.env.PORT || 8888;
