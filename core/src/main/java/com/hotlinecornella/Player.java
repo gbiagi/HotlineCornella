@@ -7,14 +7,12 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.utils.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class Player {
-    private static final Logger logger = new Logger(Player.class.getName(), Logger.DEBUG);
     private Texture idleTexture;
     private Texture runTexture;
     private Animation<TextureRegion> idleAnimation;
@@ -28,7 +26,7 @@ public class Player {
     private Texture bulletTexture;
     private List<Bullet> bullets;
     private String id;
-    private float speed;
+    private int health;
 
     public Player(String idleTextureFilePath, String runTextureFilePath, float initialX, float initialY, float scale) {
         try {
@@ -39,7 +37,8 @@ public class Player {
             this.scale = scale;
             this.shapeRenderer = new ShapeRenderer();
             this.id = UUID.randomUUID().toString(); // Generate a unique ID for the player
-            this.speed = speed;
+
+            health = 50;
 
             // Assuming each frame is 120x44 pixels
             idleAnimation = createAnimation(idleTexture);
@@ -52,7 +51,7 @@ public class Player {
             bullets = new ArrayList<>();
 
         } catch (Exception e) {
-            logger.error("Error loading player textures", e);
+            System.out.println("Error loading player textures" + e);
         }
     }
 
@@ -97,10 +96,38 @@ public class Player {
 //            shapeRenderer.end();
 
         } catch (Exception e) {
-            logger.error("Error rendering player", e);
+            System.out.println("Error rendering player" + e);
         }
     }
+    public void renderHealthBar(ShapeRenderer shapeRenderer) {
+        // Get the dimensions for positioning
+        float healthBarWidth = idleAnimation.getKeyFrame(0).getRegionWidth() * scale;
+        float healthBarHeight = 5;
 
+        // Position the health bar above the player
+        float healthBarX = x;
+        float healthBarY = y + (idleAnimation.getKeyFrame(0).getRegionHeight() * scale) + 5;
+
+        // Calculate the filled portion based on health percentage
+        float healthPercentage = health / 50f;
+        float fillWidth = healthPercentage * healthBarWidth;
+
+        // Interpolate color from green to red based on health percentage
+        float red = 1 - healthPercentage;
+
+        // Begin shape renderer
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+        // Draw the background (empty health bar)
+        shapeRenderer.setColor(0.5f, 0, 0, 1); // Dark red for background
+        shapeRenderer.rect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+
+        // Draw the filled portion with interpolated color
+        shapeRenderer.setColor(red, healthPercentage, 0, 1); // Interpolated color
+        shapeRenderer.rect(healthBarX, healthBarY, fillWidth, healthBarHeight);
+
+        shapeRenderer.end();
+    }
     public void move(float deltaX, float deltaY) {
         x += deltaX;
         y += deltaY;
@@ -111,7 +138,6 @@ public class Player {
             flipX = false;
         }
     }
-
     public void shoot(Direction direction) {
         float bulletX = getX() + (idleAnimation.getKeyFrame(0).getRegionWidth() * scale) / 2 - (float) bulletTexture.getWidth() / 2;
         float bulletY = getY() + (idleAnimation.getKeyFrame(0).getRegionHeight() * scale) / 2 - (float) bulletTexture.getHeight() / 2;
@@ -119,36 +145,41 @@ public class Player {
         bullets.add(bullet);
     }
 
-    public void setRunning(boolean running) {
-        isRunning = running;
-    }
-
-    public void dispose() {
-        idleTexture.dispose();
-        runTexture.dispose();
-    }
-
     public Rectangle getBounds() {
         return new Rectangle(x, y, idleAnimation.getKeyFrame(0).getRegionWidth() * scale, idleAnimation.getKeyFrame(0).getRegionHeight() * scale);
     }
-
     public float getX() {
         return x;
     }
-
     public float getY() {
         return y;
     }
     public List<Bullet> getBullets() {
         return bullets;
     }
-
+    public void setRunning(boolean running) {
+        isRunning = running;
+    }
+    public boolean isRunning() {
+        return isRunning;
+    }
     public String getId() {
         return id;
     }
-
-    public void setPosition(float x, float y) {
-        this.x = x;
-        this.y = y;
+    public int getHealth() {
+        return health;
     }
+    public void setHealth(int health) {
+        this.health = health;
+    }
+    public void playerHit() {
+        if (health > 0) {
+            health -= 10;
+        }
+    }
+    public void dispose() {
+        idleTexture.dispose();
+        runTexture.dispose();
+    }
+
 }

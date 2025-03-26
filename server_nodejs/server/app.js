@@ -1,15 +1,14 @@
 const express = require('express');
-const GameLogic = require('./gameLogic.js');
 const webSockets = require('./utilsWebSockets.js');
-const GameLoop = require('./utilsGameLoop.js');
+const e = require('express');
 
 const debug = true;
 const port = process.env.PORT || 8888;
+let players = [];
 
 // Inicialitzar WebSockets i la lògica del joc
 const ws = new webSockets();
-const game = new GameLogic(ws); // Pass the WebSocket object
-let gameLoop = new GameLoop();
+
 
 // Inicialitzar servidor Express
 const app = express();
@@ -26,55 +25,86 @@ ws.init(httpServer, port);
 
 ws.onConnection = (socket, id) => {
     if (debug) console.log("WebSocket client connected: " + id);
-    game.addClient(id);
+    // Wait 3s before sending the welcome message
+    players.push(socket);
+    console.log("Players connected: " + players.length);
+    if (players.length === 2) {
+        launchGame();
+    }
 };
 
-// Helper function to validate and parse JSON safely
-function parseMessage(msg) {
-    try {
-        const parsed = JSON.parse(msg);
-        if (typeof parsed.type === "string" && typeof parsed.id === "string") {
-            return parsed;
-        }
-        throw new Error("Invalid message structure");
-    } catch (error) {
-        console.error("Failed to parse message:", error.message);
-        return null;
-    }
-}
-
 ws.onMessage = (socket, id, msg) => {
-    try {
-        if (typeof msg !== "string") {
-            console.error(`Unexpected message type from ${id}:`, typeof msg);
-            return;
-        }
-
-        const parsedMsg = JSON.parse(msg);
-
-        if (parsedMsg.type === "playerMove") {
-            console.log(`Processing movement message for client ${id}:`, parsedMsg);
-            game.handleMessage(id, parsedMsg);
-        } else {
-            console.error(`Unknown message type from ${id}:`, parsedMsg.type);
-        }
-    } catch (error) {
-        console.error(`Error processing message from ${id}:`, error);
+    //if (debug) console.log(`New message from ${id}: ${msg}`);
+    const message = JSON.parse(msg);
+    switch (message.type) {
+        case "playerMove":
+            players.forEach(player => {
+                if (player !== socket) {
+                    player.send(msg);
+                }
+            });
+            break;
+        case "playerStopped":
+            players.forEach(player => {
+                if (player !== socket) {
+                    player.send(msg);
+                }
+            });
+            break;
+        case "playerShoot":
+            players.forEach(player => {
+                if (player !== socket) {
+                    player.send(msg);
+                }
+            });
+            break;
+        case "playerHit":
+            players.forEach(player => {
+                if (player !== socket) {
+                    player.send(msg);
+                }
+            });
+            break;
+        case "playerDead":
+            players.forEach(player => {
+                if (player !== socket) {
+                    player.send(msg);
+                }
+            });
+            break;
+        case "gameOver":
+            players.forEach(player => {
+                if (player !== socket) {
+                    player.send(JSON.stringify({ type: "gameOver", gameWon: true }));
+                } else {
+                    player.send(JSON.stringify({ type: "gameOver", gameWon: false }));
+                }
+            });
+            endGame();
+            break;
     }
 };
 
 ws.onClose = (socket, id) => {
     if (debug) console.log("WebSocket client disconnected: " + id);
-    game.removeClient(id);
+    players = players.filter(player => player !== socket);
+    console.log("Players connected: " + players.length);
     ws.broadcast(JSON.stringify({ type: "disconnected", from: "server" }));
 };
 
-// **Game Loop**
-gameLoop.run = (fps) => {
-    game.updateGame(fps);
-    ws.broadcast(JSON.stringify({ type: "update", gameState: game.getGameState() }));
-};
-gameLoop.start();
+function launchGame() {
+    console.log("Launching game...");
+    players.forEach(player => {
+        player.send(JSON.stringify({ type: "gameStart", position: players.indexOf(player) + 1 }));
+    });
+    //ws.broadcast(JSON.stringify({ type: "gameStart", from: "server" }));
+}
+
+function endGame() {
+    console.log("Game over...");
+    ws.broadcast(JSON.stringify({ type: "gameOver", from: "server" }));
+}
+
 
 // Gestionar el tancament del servidor
 process.on('SIGTERM', shutDown);
@@ -84,6 +114,5 @@ function shutDown() {
     console.log('Rebuda senyal de tancament, aturant el servidor...');
     httpServer.close();
     ws.end();
-    gameLoop.stop();
     process.exit(0);
 }

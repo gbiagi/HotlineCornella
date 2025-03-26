@@ -42,6 +42,7 @@ configure(subprojects) {
   dependencies {
     // Add the WebSocket library here
     implementation 'org.java-websocket:Java-WebSocket:1.5.3'
+    implementation 'org.json:json:20171018'
   }
 
   tasks.register('generateAssetList') {
