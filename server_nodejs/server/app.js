@@ -1,5 +1,6 @@
 const express = require('express');
 const webSockets = require('./utilsWebSockets.js');
+const e = require('express');
 
 const debug = true;
 const port = process.env.PORT || 8888;
@@ -25,7 +26,6 @@ ws.init(httpServer, port);
 ws.onConnection = (socket, id) => {
     if (debug) console.log("WebSocket client connected: " + id);
     // Wait 3s before sending the welcome message
-    socket.send(JSON.stringify({ type: "connected", from: "server" }));
     players.push(socket);
     console.log("Players connected: " + players.length);
     if (players.length === 2) {
@@ -34,7 +34,7 @@ ws.onConnection = (socket, id) => {
 };
 
 ws.onMessage = (socket, id, msg) => {
-    if (debug) console.log(`New message from ${id}: ${msg}`);
+    //if (debug) console.log(`New message from ${id}: ${msg}`);
     const message = JSON.parse(msg);
     switch (message.type) {
         case "playerMove":
@@ -58,6 +58,30 @@ ws.onMessage = (socket, id, msg) => {
                 }
             });
             break;
+        case "playerHit":
+            players.forEach(player => {
+                if (player !== socket) {
+                    player.send(msg);
+                }
+            });
+            break;
+        case "playerDead":
+            players.forEach(player => {
+                if (player !== socket) {
+                    player.send(msg);
+                }
+            });
+            break;
+        case "gameOver":
+            players.forEach(player => {
+                if (player !== socket) {
+                    player.send(JSON.stringify({ type: "gameOver", gameWon: true }));
+                } else {
+                    player.send(JSON.stringify({ type: "gameOver", gameWon: false }));
+                }
+            });
+            endGame();
+            break;
     }
 };
 
@@ -70,7 +94,16 @@ ws.onClose = (socket, id) => {
 
 function launchGame() {
     console.log("Launching game...");
-    ws.broadcast(JSON.stringify({ type: "gameStart", from: "server" }));
+    players.forEach(player => {
+        player.send(JSON.stringify({ type: "gameStart", position: players.indexOf(player) + 1 }));
+    });
+    //ws.broadcast(JSON.stringify({ type: "gameStart", from: "server" }));
+}
+
+function endGame() {
+    console.log("Game over...");
+    ws.broadcast(JSON.stringify({ type: "gameOver", from: "server" }));
+    players = [];
 }
 
 

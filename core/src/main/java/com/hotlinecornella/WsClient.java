@@ -11,6 +11,7 @@ import java.net.URISyntaxException;
 public class WsClient extends WebSocketClient {
     private static WsClient instance;
     private final Main gameInstance;
+    private int position;
 
     private WsClient(URI serverUri, Main gameInstance) {
         super(serverUri);
@@ -46,8 +47,9 @@ public class WsClient extends WebSocketClient {
                     switch (type) {
                         case "gameStart" -> {
                             System.out.println("Starting game...");
+                            int position = obj.getInt("position");
                             if (!(gameInstance.getScreen() instanceof GameScreen)) {
-                                gameInstance.setScreen(new GameScreen(gameInstance));
+                                gameInstance.setScreen(new GameScreen(gameInstance, position));
                             }
                         }
                         case "playerMove" -> {
@@ -68,6 +70,18 @@ public class WsClient extends WebSocketClient {
                             if (gameInstance.getScreen() instanceof GameScreen gameScreen) {
                                 Direction direction = Direction.valueOf(obj.getString("direction"));
                                 gameScreen.rivalShoot(direction);
+                            }
+                        }
+                        case "playerHit" -> {
+                            if (gameInstance.getScreen() instanceof GameScreen gameScreen) {
+                                gameScreen.rivalHit();
+                            }
+                        }
+                        case "gameOver" -> {
+                            if (gameInstance.getScreen() instanceof GameScreen gameScreen) {
+                                boolean gameWon = obj.getBoolean("gameWon");
+                                gameInstance.setScreen(new GameOverScreen(gameWon));
+                                this.close();
                             }
                         }
                     }
