@@ -2,6 +2,7 @@ package com.hotlinecornella;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -18,11 +19,13 @@ public class GameOverScreen extends ScreenAdapter {
     private final boolean gameWon;
     private final Stage stage;
     private final Main game;
+    private final Texture winImage, lostImage;
 
     public GameOverScreen(boolean gameWon) {
         this.gameWon = gameWon;
         this.game = (Main) Gdx.app.getApplicationListener();
-
+        winImage = new Texture(Gdx.files.internal("images/win_screen.png"));
+        lostImage = new Texture(Gdx.files.internal("images/lost_screen.png"));
         batch = new SpriteBatch();
         font = new BitmapFont();
         stage = new Stage(new ScreenViewport());
@@ -50,19 +53,17 @@ public class GameOverScreen extends ScreenAdapter {
 
         // Create restart button
         TextButton restartButton = new TextButton("Restart Game", skin);
-        restartButton.setSize(200, 60);
-        restartButton.setPosition(
-            (Gdx.graphics.getWidth() - restartButton.getWidth()) / 2,
-            ((float) Gdx.graphics.getHeight() / 2) - 100
-        );
+        restartButton.setSize(110, 60);
+        restartButton.setPosition(50, 700);
 
         // Add button listener
         restartButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 // Restart the game - go back to waiting room
-                game.setScreen(new WaitingRoom(game));
-                WsClient.connectInstance();
+                game.setScreen(new WaitingRoom());
+                WsClient.connectInstance(game); // Pass the game instance
+                dispose();
             }
         });
 
@@ -76,9 +77,11 @@ public class GameOverScreen extends ScreenAdapter {
 
         batch.begin();
         if (gameWon) {
-            font.draw(batch, "Game Won! Congratulations!", Gdx.graphics.getWidth() / 2.5f, Gdx.graphics.getHeight() / 2f);
+            //font.draw(batch, "Game Won! Congratulations!", Gdx.graphics.getWidth() / 2.5f, Gdx.graphics.getHeight() / 2f);
+            batch.draw(winImage, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         } else {
-            font.draw(batch, "Game Over! You lost!", Gdx.graphics.getWidth() / 2.5f, Gdx.graphics.getHeight() / 2f);
+            batch.draw(lostImage, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+            //font.draw(batch, "Game Over! You lost!", Gdx.graphics.getWidth() / 2.5f, Gdx.graphics.getHeight() / 2f);
         }
         batch.end();
 
@@ -95,6 +98,7 @@ public class GameOverScreen extends ScreenAdapter {
     @Override
     public void dispose() {
         batch.dispose();
+        winImage.dispose();
         font.dispose();
         stage.dispose();
     }

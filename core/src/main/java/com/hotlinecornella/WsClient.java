@@ -30,10 +30,12 @@ public class WsClient extends WebSocketClient {
         return instance;
     }
 
-    public static void connectInstance() {
+    public static void connectInstance(Main gameInstance) {
         if (instance != null) {
-            instance.connect();
+            instance.close();
+            instance = null;
         }
+        instance = getInstance(gameInstance);
     }
 
     @Override
@@ -101,6 +103,7 @@ public class WsClient extends WebSocketClient {
     @Override
     public void onClose(int code, String reason, boolean remote) {
         System.out.println("WebSocket closed: " + reason);
+        instance = null; // Ensure instance is null when connection is closed
     }
 
     @Override

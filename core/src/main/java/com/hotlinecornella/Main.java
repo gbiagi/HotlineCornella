@@ -12,7 +12,7 @@ public class Main extends Game {
             webSocketClient = WsClient.getInstance(this);
 
             // Set initial screen to waiting room
-            setScreen(new WaitingRoom(this));
+            setScreen(new WaitingRoom());
         } catch (Exception e) {
             System.out.println("Error during create: " + e);
         }
