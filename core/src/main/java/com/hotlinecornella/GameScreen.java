@@ -8,10 +8,8 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.Json;
 import org.json.JSONObject;
 
-import java.util.HashMap;
 import java.util.Iterator;
 
 public class GameScreen extends ScreenAdapter {
@@ -112,6 +110,7 @@ public class GameScreen extends ScreenAdapter {
         }
     }
 
+    // Send player messages to the server
     private void sendPlayerMoveMessage() {
         JSONObject message = new JSONObject();
         message.put("type", "playerMove");
@@ -136,13 +135,14 @@ public class GameScreen extends ScreenAdapter {
         message.put("type", "playerHit");
         webSocketClient.send(message.toString());
     }
-    private void sendGameOverMessage(boolean gameWon) {
+    private void sendGameOverMessage() {
         JSONObject message = new JSONObject();
         message.put("type", "gameOver");
-        message.put("gameWon", gameWon);
+        message.put("gameWon", false);
         webSocketClient.send(message.toString());
     }
 
+    // Update rival from server messages
     public void updateRivalPosition(float x, float y) {
         // Calculate the difference in position
         float deltaX = x - rival.getX();
@@ -162,6 +162,7 @@ public class GameScreen extends ScreenAdapter {
         rival.playerHit();
     }
 
+    // Handle player input and collision from players and bullets
     private void handleInput() {
         float moveSpeed = 100 * Gdx.graphics.getDeltaTime();
         float nextX = player.getX();
@@ -279,7 +280,7 @@ public class GameScreen extends ScreenAdapter {
                 if (player.getHealth() <= 0) {
                     System.out.println("Player defeated");
                     // End game
-                    sendGameOverMessage(false);
+                    sendGameOverMessage();
                 }
                 break;
             }
