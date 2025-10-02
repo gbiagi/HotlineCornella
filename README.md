@@ -1,35 +1,50 @@
 # HotlineCornella
 
-A [libGDX](https://libgdx.com/) project generated with [gdx-liftoff](https://github.com/libgdx/gdx-liftoff).
+HotlineCornella is a small 2D top-down shooter built with libGDX. Players control a character that navigates tile-based maps, avoids hazards, and battles other players or AI. The repo contains a desktop client (LWJGL3) and a lightweight Node.js server used for testing and multiplayer prototypes.
 
-This project was generated with a template including simple application launchers and an `ApplicationAdapter` extension that draws libGDX logo.
+Highlights
+- Fast, arcade-style top-down shooting gameplay
+- Tile-based levels and sprite animations
+- Small, modular codebase structured for desktop and server platforms
 
-## Platforms
+Technologies
+- Java and libGDX for core game logic (`core` module)
+- LWJGL3 for the desktop platform (`lwjgl3` module)
+- Node.js for the server (`server_nodejs`) with simple WebSocket utilities
+- Gradle as the build system with an included Gradle Wrapper
 
-- `core`: Main module with the application logic shared by all platforms.
-- `lwjgl3`: Primary desktop platform using LWJGL3; was called 'desktop' in older docs.
-- `server`: A separate application without access to the `core` module.
+Client (desktop)
+- The `lwjgl3` module builds a desktop launcher using LWJGL3. It runs the libGDX application which depends on the shared `core` module for game logic, maps, sprites, and input handling.
 
-## Gradle
+Server
+- The `server_nodejs` folder contains a minimal Node.js server used to coordinate multiplayer sessions and simplify local testing. It uses WebSockets to exchange player inputs and game state (positions, bullets, simple events). The Node server is intentionally lightweight:
+	- Accepts WebSocket connections from clients
+	- Broadcasts simple JSON messages (player join/leave, position updates, actions)
+	- Contains basic game-loop or tick utilities to keep state updates regular (see `server/utilsGameLoop.js`)
+	- Designed for local development and prototyping — not hardened for production use (no auth, no persistent storage, limited sanitization)
 
-This project uses [Gradle](https://gradle.org/) to manage dependencies.
-The Gradle wrapper was included, so you can run Gradle tasks using `gradlew.bat` or `./gradlew` commands.
-Useful Gradle tasks and flags:
+Where to look
+- Shared game logic: `core/src/main/java/com/hotlinecornella`
+- Desktop launcher: `lwjgl3/src/main/java` and `lwjgl3/build.gradle`
+- Node server: `server_nodejs/server` (see `app.js`, `utilsGameLoop.js`, `utilsWebSockets.js`)
 
-- `--continue`: when using this flag, errors will not stop the tasks from running.
-- `--daemon`: thanks to this flag, Gradle daemon will be used to run chosen tasks.
-- `--offline`: when using this flag, cached dependency archives will be used.
-- `--refresh-dependencies`: this flag forces validation of all dependencies. Useful for snapshot versions.
-- `build`: builds sources and archives of every project.
-- `cleanEclipse`: removes Eclipse project data.
-- `cleanIdea`: removes IntelliJ project data.
-- `clean`: removes `build` folders, which store compiled classes and built archives.
-- `eclipse`: generates Eclipse project data.
-- `idea`: generates IntelliJ project data.
-- `lwjgl3:jar`: builds application's runnable jar, which can be found at `lwjgl3/build/libs`.
-- `lwjgl3:run`: starts the application.
-- `server:run`: runs the server application.
-- `test`: runs unit tests (if any).
+Running (PowerShell / Windows)
+1. Build the Java project (from repo root):
 
-Note that most tasks that are not specific to a single project can be run with `name:` prefix, where the `name` should be replaced with the ID of a specific project.
-For example, `core:clean` removes `build` folder only from the `core` project.
+```powershell
+./gradlew.bat build
+```
+
+2. Run the desktop client (from repo root):
+
+```powershell
+./gradlew.bat lwjgl3:run
+```
+
+3. Run the Node.js server (requires Node.js installed). Open a terminal in `server_nodejs` and run:
+
+```powershell
+cd server_nodejs
+node server/app.js
+```
+
